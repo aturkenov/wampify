@@ -1,0 +1,5 @@
+.vscode/
+*pyc
+*.pid
+*.priv
+*.pub
