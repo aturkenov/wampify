@@ -1,0 +1,125 @@
+{
+    "version": 2,
+    "controller": {},
+    "workers": [
+        {
+            "type": "router",
+            "options": {},
+            "realms": [
+                {
+                    "name": "test",
+                    "roles": [
+                        {
+                            "name": "public",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "private",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": "../web"
+                        },
+                        "public": {
+                            "type": "websocket",
+                            "auth": {
+                                "ticket": {
+                                    "type": "static",
+                                    "principals": {
+                                        "public": {
+                                            "ticket": "secret",
+                                            "role": "public"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "private": {
+                            "type": "websocket",
+                            "auth": {
+                                "ticket": {
+                                    "type": "static",
+                                    "principals": {
+                                        "private": {
+                                            "ticket": "secret",
+                                            "role": "private"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "type": "container",
+            "options": {
+                "pythonpath": [
+                    "../",
+                    "/home/aidar/wampify/wampify/"
+                ]
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "example.backend.session_factory",
+                    "realm": "test",
+                    "transport": {
+                        "type": "websocket",
+                        "endpoint": {
+                            "type": "tcp",
+                            "host": "127.0.0.1",
+                            "port": 8080
+                        },
+                        "url": "ws://127.0.0.1:8080/private"
+                    }
+                }
+            ]
+        }
+    ]
+}
