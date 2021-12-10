@@ -8,7 +8,7 @@ from settings import KitchenSettings, get_validated_settings
 from typing import *
 
 
-class Kitchen:
+class Wampify:
     """
     """
 
