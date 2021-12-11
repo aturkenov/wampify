@@ -1,7 +1,7 @@
 from inspect import iscoroutinefunction as is_awaitable
 from pydantic import ValidationError
 from pydantic.decorator import ValidatedFunction
-from shared.serializer import DEFAULT_SERIALIZERS
+from shared.serializer import DEFAULT_SERIALIZERS, serialize_primitive
 from . import error
 from typing import *
 
@@ -10,7 +10,6 @@ class BaseEndpoint:
     """
     """
 
-    name: str
     _endpoint: Union[Awaitable, Callable]
     _validate_payload: bool
     _pmodel: ValidatedFunction
@@ -18,12 +17,10 @@ class BaseEndpoint:
 
     def __init__(
         self,
-        name: str,
         endpoint: Union[Awaitable, Callable],
         validate_payload = True,
         serializers: Iterable[Callable] = DEFAULT_SERIALIZERS
     ):
-        self.name = name
         assert callable(endpoint), 'endpoint must be `Callable`'
         self._endpoint = endpoint
         self._pmodel = ValidatedFunction(endpoint, None)
@@ -64,6 +61,11 @@ class BaseEndpoint:
             try:
                 return s(data)
             except: ...
+
+        try:
+            return serialize_primitive(data)
+        except: ...
+
         raise error.SerializationError
 
     async def execute(
