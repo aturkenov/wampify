@@ -1,6 +1,6 @@
 from .base import RChain, RCSettings
 from service.client_imc import client_imc
-from typing import Mapping
+from typing import *
 
 
 class ClientIMCRC(RChain):

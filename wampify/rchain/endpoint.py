@@ -1,5 +1,5 @@
 from .base import RChain, RCSettings
-from typing import Mapping
+from typing import *
 
 
 class EndpointRC(RChain):

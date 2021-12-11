@@ -1,5 +1,5 @@
 from contextvars import ContextVar
-from typing import Any
+from typing import *
 
 
 class BaseStory:

@@ -2,7 +2,7 @@ from .story import *
 from .wamp import *
 from rchain import *
 from .request import *
-from .endpoint import Endpoint
+from .endpoint import *
 from shared.serializer import serialize_primitive
 from settings import KitchenSettings, get_validated_settings
 from typing import *

@@ -3,7 +3,7 @@ from autobahn.wamp.types import RegisterOptions, SubscribeOptions
 from twisted.internet.defer import inlineCallbacks
 from shared.ensure_deferred import ensure_deferred
 from settings import WAMPBackendSettings, WAMPBSessionSettings
-from typing import Callable, List, Tuple, Mapping, Any
+from typing import *
 
 
 class WAMPBShoppingCart:

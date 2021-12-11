@@ -1,7 +1,7 @@
 from .base import RChain, RCSettings
 from core.error import KBaseError, SomethingWentWrong
 from autobahn.wamp.exception import ApplicationError
-from typing import Mapping
+from typing import *
 
 
 class ErrorRC(RChain):

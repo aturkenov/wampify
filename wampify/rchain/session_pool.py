@@ -1,6 +1,6 @@
 from .base import RChain, RCSettings
 from service.session_pool import SessionPool
-from typing import Mapping
+from typing import *
 
 
 class SessionPoolRC(RChain):
