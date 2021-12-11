@@ -1,10 +1,9 @@
-from .story import *
 from .wamp import *
-from rchain import *
 from .request import *
 from .endpoint import *
-from shared.serializer import serialize_primitive
-from settings import KitchenSettings, get_validated_settings
+from rchain import *
+from shared.serializer import *
+from settings import *
 from typing import *
 
 
@@ -20,46 +19,39 @@ class Wampify:
         settings: KitchenSettings
     ):
         self.settings = get_validated_settings(settings)
-        self.settings.RCs = [
-            ErrorRC,
-            *self.settings.RCs,
-            EndpointRC
-        ]
-        self.settings.serializers.append(serialize_primitive)
         self.wamp = WAMPBackend(self.settings.wamp)
 
     def add_register(
         self,
         path: str,
         F: Union[Awaitable, Callable],
-        validate = True,
-        settings: Mapping = {}
+        settings: EndpointSettings = {}
     ) -> Awaitable:
-        rchain = build_responsibility_chain(self.settings.RCs, settings)
-        endpoint = Endpoint(
-            path,
-            F,
-            validate_payload=validate,
-            serializers=self.settings.serializers
+        endpoint_settings = EndpointSettings(**settings)
+        rchain = build_rchain(
+            self.settings.rchains, endpoint_settings.rchain
         )
 
-        async def called(
+        endpoint = Endpoint(
+            F, endpoint_settings.validate_payload, self.settings.serializers
+        )
+
+        async def on_call(
             *A,
-            _D,
+            _CALL_DETAILS,
             **K,
         ):
-            create_story()
-            r = Request(_D, endpoint, A, K)
-            return await rchain().handle({'request': r})
+            r = CallRequest(
+                endpoint, _CALL_DETAILS, A, K
+            )
+            return await rchain.handle(r)
 
         self.wamp._cart.register(
-            path,
-            called,
-            {
-                'details_arg': '_D'
+            path, on_call, {
+                'details_arg': '_CALL_DETAILS'
             }
         )
-        return called
+        return on_call
 
     def register(
         self,
@@ -84,34 +76,33 @@ class Wampify:
         self,
         path: str,
         F: Union[Awaitable, Callable],
-        validate = True,
-        settings: Mapping = {}
+        settings: EndpointSettings = {}
     ) -> Awaitable:
-        rchain = build_responsibility_chain(self.settings.RCs, settings)
-        endpoint = Endpoint(
-            path,
-            F,
-            validate_payload=validate,
-            serializers=self.settings.serializers
+        endpoint_settings = EndpointSettings(**settings)
+        rchain = build_rchain(
+            self.settings.rchains, endpoint_settings.rchain
         )
 
-        async def published(
+        endpoint = Endpoint(
+            F, endpoint_settings.validate_payload, self.settings.serializers
+        )
+
+        async def on_publish(
             *A,
-            _D,
+            _PUBLISH_DETAILS,
             **K,
         ):
-            create_story()
-            r = Request(_D, endpoint, A, K)
-            return await rchain().handle({'request': r})
+            r = PublishRequest(
+                endpoint, _PUBLISH_DETAILS, A, K
+            )
+            return await rchain.handle(r)
 
         self.wamp._cart.subscribe(
-            path,
-            published,
-            {
-                'details_arg': '_D'
+            path, on_publish, {
+                'details_arg': '_PUBLISH_DETAILS'
             }
         )
-        return published
+        return on_publish
 
     def subscribe(
         self,

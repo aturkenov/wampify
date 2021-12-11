@@ -17,9 +17,9 @@ def serialize_primitive(
     """
     """
     try:
-        return data.to_primitive()
-    except:
-        return json.dumps(data)
+        data = data.to_primitive() 
+    except: ...
+    return json.dumps(data)
 
 
 DEFAULT_SERIALIZERS = [
