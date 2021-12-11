@@ -1,20 +1,18 @@
-from .base import RChain, RCSettings
+from .base import RChain, RChainSettings
+from core.request import *
 from typing import *
 
 
 class EndpointRC(RChain):
     """
+    It's last Rchain. Just executes enpoint
     """
 
-    class Settings(RCSettings):
-        name = 'endpoint'
+    name = 'endpoint'
 
     async def handle(
         self,
-        scope: Mapping
+        request: BaseRequest
     ):
-        """
-        """
-        A, K = scope['request'].A, scope['request'].K
-        return await scope['request'].endpoint(*A, **K)
+        return await request.endpoint(*request.A, **request.K)
 

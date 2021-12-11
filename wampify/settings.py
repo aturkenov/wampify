@@ -10,12 +10,11 @@ class BaseSettings(BaseModel):
         extra = Extra.allow
 
 
-class RCSettings(BaseModel):
+class EndpointSettings(BaseModel):
     """
     """
-
-    disabled = False
-
+    validate_payload = True
+    rchain: Mapping[str, Mapping[str, Any]] = {}
 
 
 class WAMPBSessionSettings(BaseModel):
@@ -47,7 +46,7 @@ class KitchenSettings(BaseModel):
     debug = False
     wamp: WAMPBackendSettings
     serializers: List[Callable] = []
-    RCs: List[Any] = []
+    rchains: List[Any] = []
 
 
 def get_validated_settings(data: Mapping) -> KitchenSettings:

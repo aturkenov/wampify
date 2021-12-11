@@ -1,17 +1,19 @@
-from .base import RChain, RCSettings
+from .base import RChain, RChainSettings
+from core.request import *
 from service.client_imc import client_imc
 from typing import *
 
 
 class ClientIMCRC(RChain):
 
-    class Settings(RCSettings):
-        name = 'client_imc'
+    name = 'client_imc'
 
     async def handle(
         self,
-        scope: Mapping
+        request: BaseRequest
     ):
-        self.story.client_imc = client_imc[self.story.client]
-        return await self.call_next(scope)
+        """
+        """
+        request.story.client_imc = client_imc[request.story.client.i]
+        return await self.call_next(request)
 

@@ -1,4 +1,5 @@
-from .base import RChain, RCSettings
+from .base import RChain, RChainSettings
+from core.request import *
 from core.error import KBaseError, SomethingWentWrong
 from autobahn.wamp.exception import ApplicationError
 from typing import *
@@ -6,10 +7,12 @@ from typing import *
 
 class ErrorRC(RChain):
     """
+    It's first RChain.
     """
 
-    class Settings(RCSettings):
-        name = 'error'
+    name = 'error'
+
+    class DefaultSettings(RChainSettings):
         domain = 'error'
         debug = False
 
@@ -17,19 +20,18 @@ class ErrorRC(RChain):
         self,
         name
     ):
-        domain = self.sget('domain')
-        return f'{domain}.{name}'
+        return f'{self.settings.domain}.{name}'
 
     async def handle(
         self,
-        scope: Mapping
+        request: BaseRequest
     ):
         """
         """
         try:
-            return await self.call_next(scope)
+            return await self.call_next(request)
         except KBaseError as e:
-            if self.sget('debug'):
+            if self.settings.debug:
                 raise e
 
             try:

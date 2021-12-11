@@ -87,3 +87,8 @@ class SerializationError(SomethingWentWrong):
     """
     """
 
+
+class RChainNotBoundError(SomethingWentWrong):
+    """
+    """
+

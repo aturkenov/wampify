@@ -1,4 +1,5 @@
-from .base import RChain, RCSettings
+from .base import RChain, RChainSettings
+from core.request import *
 from service.session_pool import SessionPool
 from typing import *
 
@@ -7,17 +8,16 @@ class SessionPoolRC(RChain):
     """
     """
 
-    class Settings(RCSettings):
+    class DefaultSettings(RChainSettings):
         name = 'session_pool'
         factories = []
 
     async def handle(
         self,
-        scope: Mapping
+        request: BaseRequest
     ):
         """
         """
-        factories = self.sget('factories')
-        self.story.session_pool = SessionPool(factories)
-        return await self.call_next(scope)
+        request.story.session_pool = SessionPool(self.settings.factories)
+        return await self.call_next(request)
 

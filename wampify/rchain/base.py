@@ -1,91 +1,85 @@
-from core.story import *
+from core.request import *
+from core.error import *
+from pydantic import BaseModel
 from typing import *
 
 
-class RCSettings:
+class RChainSettings(BaseModel):
     """
     """
 
-    name: str
     disabled = False
 
 
-class BaseRC:
+class BaseRChain:
     """
     """
 
-    _next: 'BaseRC'
-    _settings: Mapping
+    _next: 'BaseRChain'
 
-    class Settings(RCSettings):
-        name = 'base'
+    name: str
+    settings: RChainSettings
 
-    def sget(self, k: str):
-        assert type(k) == str
-        d = getattr(self.Settings, k)
-        return self._settings.get(f'RC.{self.Settings.name}.{k}', d)
+    class DefaultSettings(RChainSettings):
+        """
+        """
+
+    def __init__(
+        self,
+        new_settings: Mapping[str, Any]
+    ) -> None:
+        self._update_settings(new_settings)
+
+    def _update_settings(
+        self,
+        new_settings: Mapping 
+    ):
+        """
+        Updates settings
+        """
+        assert type(new_settings) == dict
+        rchain_settings = new_settings.get(self.name, {})
+        self.settings = self.DefaultSettings(**rchain_settings)
 
     async def call_next(
         self,
-        scope: Mapping
+        request: BaseRequest
     ) -> Awaitable:
         """
+        Calls next chain and passes settings
         """
         if self._next is None:
-            raise RuntimeError
-        return await self._next().handle(scope)
+            raise RChainNotBoundError
+        return await self._next.handle(request)
 
     async def handle(
         self,
-        scope: Mapping
+        request: BaseRequest
     ):
         """
         """
         raise NotImplementedError
 
 
-class RChain(BaseRC):
+RChainsDT = List['RChain']
+
+
+class RChain(BaseRChain):
     """
     Represents basic CoR (Chain of Responsibility) pattern
     """
 
-    story: Story
+    name = 'RChain'
 
-    def __init__(
-        self
-    ):
-        self.story = get_current_story()
-
-    class Settings(RCSettings):
-        name = 'RChain'
+    class DefaultSettings(RChainSettings):
+        """
+        """
 
     async def handle(
         self,
-        scope: Mapping
+        request: BaseRequest
     ):
         """
         """
-
-
-RChainsDT = Iterable[RChain]
-
-
-def build_responsibility_chain(
-    RCs: RChainsDT,
-    settings: Mapping = {}
-) -> RChain:
-    """
-    Builds chain of responsibility
-    """
-    first, i = None, None
-    for chain in RCs:
-        if first is None and i is None:
-            first, i = chain, chain
-            continue
-
-        i._next = chain
-        i._settings = settings
-        i = chain
-
-    return first
+        return await self.call_next(request)
 
