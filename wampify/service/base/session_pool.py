@@ -22,7 +22,7 @@ class BaseSessionFactory:
 SessionName = NewType('SessionName', str)
 
 
-class FactoryDNotExist(BaseException):
+class FactoryDoesNotExist(BaseException):
     """
     """
 
@@ -31,7 +31,7 @@ class BaseSessionPool:
     """
     """
 
-    factories: Mapping[SessionName, BaseSessionFactory] = {}
+    _factories: Mapping[SessionName, BaseSessionFactory] = {}
     _released: Mapping[SessionName, BaseSessionFactory] = {}
 
     def __init__(
@@ -41,7 +41,7 @@ class BaseSessionPool:
         """
         """
         self._released = {}
-        self.factories = factories
+        self._factories = factories
 
     def _get_factory(
         self,
@@ -49,9 +49,9 @@ class BaseSessionPool:
     ) -> BaseSessionFactory:
         """
         """
-        factory = self.factories.get(name, ...)
+        factory = self._factories.get(name, ...)
         if factory is ...:
-            raise FactoryDNotExist
+            raise FactoryDoesNotExist
         return factory
 
     def _get_released(
@@ -131,9 +131,4 @@ class BaseSessionPool:
             I = [I]
         C = [i.on_close() for i in I]
         await asyncio.gather(*C)
-
-
-class SessionPool(BaseSessionPool):
-    """
-    """
 

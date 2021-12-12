@@ -1,4 +1,3 @@
-from core.request import *
 from typing import *
 
 
@@ -46,21 +45,4 @@ class BaseInMemoryCache:
         data: Any = None
     ) -> Any:
         self.set(key, data)
-
-
-class BaseWService:
-    """
-    """
-
-    story: Story
-
-    def __init__(
-        self
-    ):
-        self.story = get_current_story()
-
-
-class WService(BaseWService):
-    """
-    """
 

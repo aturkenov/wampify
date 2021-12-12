@@ -13,7 +13,7 @@ class ErrorRC(RChain):
     name = 'error'
 
     class DefaultSettings(RChainSettings):
-        domain = 'error'
+        domain = 'wamp.error'
         debug = False
 
     def _create_uri(

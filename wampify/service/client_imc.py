@@ -1,4 +1,4 @@
-from .base import BaseInMemoryCache
+from .base.in_memory_cache import BaseInMemoryCache
 
 
 class ClientIMC(BaseInMemoryCache):

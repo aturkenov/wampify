@@ -15,14 +15,13 @@ class BaseRChain:
     """
     """
 
-    _next: 'BaseRChain'
-
     name: str
     settings: RChainSettings
-
     class DefaultSettings(RChainSettings):
         """
         """
+
+    _next: 'BaseRChain'
 
     def __init__(
         self,

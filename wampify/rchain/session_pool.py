@@ -8,8 +8,9 @@ class SessionPoolRC(RChain):
     """
     """
 
+    name = 'session_pool'
+
     class DefaultSettings(RChainSettings):
-        name = 'session_pool'
         factories = []
 
     async def handle(
