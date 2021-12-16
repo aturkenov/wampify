@@ -11,7 +11,7 @@ class Wampify:
     """
     """
 
-    _RCs: List
+    _RCs: List[RChain]
     _serializers: List[Callable]
     settings: KitchenSettings
     wamp: WAMPBackend
@@ -20,6 +20,8 @@ class Wampify:
         self,
         settings: KitchenSettings
     ) -> None:
+        self._RCs = []
+        self._serializers = []
         self.settings = get_validated_settings(settings)
         self.wamp = WAMPBackend(self.settings.wamp)
 
