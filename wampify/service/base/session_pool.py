@@ -27,7 +27,7 @@ class FactoryDoesNotExist(BaseException):
     """
 
 
-class BaseSessionPool:
+class SessionPool:
     """
     """
 
