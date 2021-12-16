@@ -3,6 +3,23 @@ import orjson as json
 from typing import *
 
 
+PRIMITIVES = (
+    None,
+    bool,
+    int, float,
+    str,
+)
+
+
+def is_primitive(
+    v: Any
+) -> bool:
+    """
+    Is data type is primitive?
+    """
+    return type(v) in PRIMITIVES
+
+
 def serialize_pydantic(
     instance: BaseModel
 ) -> bytes:
@@ -19,6 +36,7 @@ def serialize_primitive(
     try:
         data = data.to_primitive() 
     except: ...
+
     return json.dumps(data)
 
 

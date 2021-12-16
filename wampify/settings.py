@@ -20,10 +20,10 @@ class WAMPBSessionSettings(BaseModel):
     """
     """
     realm: str
-    factory: Type = None
+    factory: Any = None
     authid: str = None
-    authmethods: List[str] = None
     authrole: str = None
+    authmethods: List[str] = None
     authextra: Any = None
     resumable: str = None
     resume_session: str = None
@@ -34,7 +34,7 @@ class WAMPBackendSettings(BaseModel):
     """
     """
     domain: str = None
-    url: AnyUrl = None
+    url: str = None
     start_loop = True
     session: WAMPBSessionSettings
 
@@ -47,12 +47,15 @@ class KitchenSettings(BaseModel):
 
 
 def get_validated_settings(data: Mapping) -> KitchenSettings:
+    """
+    Returns validated user settings
+    """
     from core.wamp import WAMPBSession
 
     class _WAMPBSessionSettings(WAMPBSessionSettings):
+        ...
         # FIXME
-        # factory: WAMPBSession = None
-        factory: Any = None
+        # factory: WAMPBSession = WAMPBSession
 
     class _WAMPBackendSettings(WAMPBackendSettings):
         session: _WAMPBSessionSettings
@@ -60,5 +63,10 @@ def get_validated_settings(data: Mapping) -> KitchenSettings:
     class _KitchenSettings(KitchenSettings):
         wamp: _WAMPBackendSettings
 
-    return _KitchenSettings(**data)
+    settings = _KitchenSettings(**data)
+
+    if settings.wamp.session.factory is None:
+        settings.wamp.session.factory = WAMPBSession
+    
+    return settings
 

@@ -30,7 +30,7 @@ class ErrorRC(RChain):
         """
         try:
             return await self.call_next(request)
-        except KBaseError as e:
+        except BaseException as e:
             if self.settings.debug:
                 raise e
 

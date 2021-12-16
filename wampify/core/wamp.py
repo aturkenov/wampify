@@ -160,8 +160,9 @@ class WAMPBackend:
     ):
         """
         """
-        if url is ... and self.settings.url is None:
-            raise 'URL is required'
+        if url is ...:
+            url = self.settings.url
+        assert type(url) == str, 'URL is required'
         runner = ApplicationRunner(url)
         if start_loop is ...:
             start_loop = self.settings.start_loop

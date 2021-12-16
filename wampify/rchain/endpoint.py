@@ -1,4 +1,4 @@
-from .base import RChain, RChainSettings
+from .base import RChain
 from core.request import *
 from typing import *
 

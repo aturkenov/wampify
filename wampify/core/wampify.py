@@ -77,7 +77,6 @@ class Wampify:
     def register(
         self,
         path: str,
-        validate = True,
         settings: Mapping = {}
     ) -> Awaitable:
         """
@@ -88,7 +87,6 @@ class Wampify:
             return self.add_register(
                 path=path,
                 F=F,
-                validate=validate,
                 settings=settings
             )
         return decorate
@@ -127,7 +125,6 @@ class Wampify:
     def subscribe(
         self,
         path: str,
-        validate = True,
         settings: Mapping = {}
     ) -> Awaitable:
         """
@@ -138,7 +135,6 @@ class Wampify:
             return self.add_subscribe(
                 path=path,
                 F=F,
-                validate=validate,
                 settings=settings
             )
         return decorate

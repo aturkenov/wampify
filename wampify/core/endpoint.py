@@ -1,7 +1,7 @@
 from inspect import iscoroutinefunction as is_awaitable
 from pydantic import ValidationError
 from pydantic.decorator import ValidatedFunction
-from shared.serializer import DEFAULT_SERIALIZERS, serialize_primitive
+from shared.serializer import *
 from . import error
 from typing import *
 
@@ -57,10 +57,12 @@ class BaseEndpoint:
         data: Any
     ) -> Any:
         """
-        Tryies to serialize function output.
-        First with passed serializers, else with default serializer,
-        otherwise raises `SerializationError` 
+        Tryies to serialize function output. First with passed serializers,
+        else with default serializer, otherwise raises `SerializationError` 
         """
+        if is_primitive(data):
+            return data    
+
         for s in self._serializers:
             try:
                 return s(data)
