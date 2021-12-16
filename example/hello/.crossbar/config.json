@@ -67,9 +67,9 @@
                         "public": {
                             "type": "websocket",
                             "auth": {
-                                "ticket": {
-                                   "type": "dynamic",
-                                   "authenticator": "com.example.authentication"
+                                "anonymous": {
+                                   "type": "static",
+                                   "role": "public"
                                 }
                             }
                         },
