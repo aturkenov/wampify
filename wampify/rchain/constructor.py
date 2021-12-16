@@ -28,3 +28,4 @@ def build_rchain(
         return first
 
     return build([ErrorRC, *RCs, EndpointRC], settings)
+

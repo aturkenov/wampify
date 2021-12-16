@@ -11,15 +11,35 @@ class Wampify:
     """
     """
 
+    _RCs: List
+    _serializers: List[Callable]
     settings: KitchenSettings
     wamp: WAMPBackend
 
     def __init__(
         self,
         settings: KitchenSettings
-    ):
+    ) -> None:
         self.settings = get_validated_settings(settings)
         self.wamp = WAMPBackend(self.settings.wamp)
+
+    def add_rchain(
+        self,
+        rchain: Callable
+    ) -> None:
+        """
+        """
+        assert isinstance(rchain, RChain), 'Must be RChain'
+        self._RCs.append(rchain)
+
+    def add_serializer(
+        self,
+        F: Callable
+    ) -> None:
+        """
+        """
+        assert callable(F), 'Serializer must be callable'
+        self._serializers.append(F)
 
     def add_register(
         self,
@@ -27,13 +47,12 @@ class Wampify:
         F: Union[Awaitable, Callable],
         settings: EndpointSettings = {}
     ) -> Awaitable:
+        """
+        """
         endpoint_settings = EndpointSettings(**settings)
-        rchain = build_rchain(
-            self.settings.rchains, endpoint_settings.rchain
-        )
-
+        rchain = build_rchain(self._RCs)
         endpoint = Endpoint(
-            F, endpoint_settings.validate_payload, self.settings.serializers
+            F, endpoint_settings.validate_payload, self._serializers
         )
 
         async def on_call(
@@ -78,13 +97,12 @@ class Wampify:
         F: Union[Awaitable, Callable],
         settings: EndpointSettings = {}
     ) -> Awaitable:
+        """
+        """
         endpoint_settings = EndpointSettings(**settings)
-        rchain = build_rchain(
-            self.settings.rchains, endpoint_settings.rchain
-        )
-
+        rchain = build_rchain(self._RCs)
         endpoint = Endpoint(
-            F, endpoint_settings.validate_payload, self.settings.serializers
+            F, endpoint_settings.validate_payload, self._serializers
         )
 
         async def on_publish(
@@ -127,7 +145,7 @@ class Wampify:
         self,
         url: str = ...,
         start_loop = ...
-    ):
+    ) -> None:
         """
         """
         self.wamp.run(url=url, start_loop=start_loop)

@@ -24,7 +24,6 @@ class BaseEndpoint:
         assert callable(endpoint), 'endpoint must be `Callable`'
         self._endpoint = endpoint
         self._pmodel = ValidatedFunction(endpoint, None)
-        assert type(validate_payload) == bool
         self._validate_payload = validate_payload
         self._serializers = serializers
 
@@ -37,7 +36,7 @@ class BaseEndpoint:
         **K
     ) -> Mapping[str, Any]:
         """
-        Validates
+        Validates input data, otherwise raises `PayloadValidationError`
         """
         values = self._pmodel.build_values(A, K)
 
@@ -57,6 +56,11 @@ class BaseEndpoint:
         self,
         data: Any
     ) -> Any:
+        """
+        Tryies to serialize function output.
+        First with passed serializers, else with default serializer,
+        otherwise raises `SerializationError` 
+        """
         for s in self._serializers:
             try:
                 return s(data)
@@ -74,7 +78,7 @@ class BaseEndpoint:
         **K
     ) -> Any:
         """
-        Executes
+        Executes passed function
         """
         payload = self._validate(*A, **K)
 

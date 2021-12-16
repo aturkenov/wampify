@@ -8,7 +8,5 @@ from .endpoint import EndpointRC
 
 
 DEFAULT_RCHAINS = [
-    SessionPoolRC,
-    # ClientIMCRC
 ]
 

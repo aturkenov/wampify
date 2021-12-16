@@ -14,7 +14,6 @@ class EndpointSettings(BaseModel):
     """
     """
     validate_payload = True
-    rchain: Mapping[str, Mapping[str, Any]] = {}
 
 
 class WAMPBSessionSettings(BaseModel):
@@ -45,31 +44,21 @@ class KitchenSettings(BaseModel):
     """
     debug = False
     wamp: WAMPBackendSettings
-    serializers: List[Callable] = []
-    rchains: List[Any] = []
 
 
 def get_validated_settings(data: Mapping) -> KitchenSettings:
     from core.wamp import WAMPBSession
-    from rchain import RChain, DEFAULT_RCHAINS
-    from shared.serializer import DEFAULT_SERIALIZERS
 
     class _WAMPBSessionSettings(WAMPBSessionSettings):
         # FIXME
         # factory: WAMPBSession = None
         factory: Any = None
 
-
     class _WAMPBackendSettings(WAMPBackendSettings):
         session: _WAMPBSessionSettings
 
-
     class _KitchenSettings(KitchenSettings):
         wamp: _WAMPBackendSettings
-        serializers: List[Callable] = DEFAULT_SERIALIZERS
-        # FIXME
-        # RCs: List[RChain] = DEFAULT_RCHAINS
-        RCs: List[Any] = DEFAULT_RCHAINS
 
     return _KitchenSettings(**data)
 

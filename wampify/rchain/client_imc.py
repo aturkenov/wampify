@@ -1,4 +1,4 @@
-from .base import RChain, RChainSettings
+from .base import RChain
 from core.request import *
 from service.client_imc import client_imc
 from typing import *

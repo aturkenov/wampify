@@ -2,6 +2,7 @@ from core.request import *
 from core.error import *
 from pydantic import BaseModel
 from typing import *
+from typing_extensions import *
 
 
 class RChainSettings(BaseModel):
@@ -25,18 +26,29 @@ class BaseRChain:
 
     def __init__(
         self,
-        new_settings: Mapping[str, Any]
+        new_settings: Mapping[str, Any] = ...
     ) -> None:
-        self._update_settings(new_settings)
+        if new_settings != ...:
+            self._update_settings(new_settings)
+
+    def __call__(
+        self,
+        new_settings: Mapping[str, Any] = ...
+    ) -> Self:
+        """
+        Returns himself
+        """
+        if new_settings != ...:
+            self._update_settings(new_settings)
+        return self
 
     def _update_settings(
         self,
         new_settings: Mapping 
-    ):
+    ) -> None:
         """
         Updates settings
         """
-        assert type(new_settings) == dict
         rchain_settings = new_settings.get(self.name, {})
         self.settings = self.DefaultSettings(**rchain_settings)
 
@@ -45,7 +57,7 @@ class BaseRChain:
         request: BaseRequest
     ) -> Awaitable:
         """
-        Calls next chain and passes settings
+        Calls next chain
         """
         if self._next is None:
             raise RChainNotBoundError
@@ -54,10 +66,7 @@ class BaseRChain:
     async def handle(
         self,
         request: BaseRequest
-    ):
-        """
-        """
-        raise NotImplementedError
+    ): ...
 
 
 RChainsDT = List['RChain']
@@ -77,7 +86,7 @@ class RChain(BaseRChain):
     async def handle(
         self,
         request: BaseRequest
-    ):
+    ) -> Any:
         """
         """
         return await self.call_next(request)

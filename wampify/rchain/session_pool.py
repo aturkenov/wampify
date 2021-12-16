@@ -1,6 +1,6 @@
 from .base import RChain, RChainSettings
 from core.request import *
-from service.session_pool import SessionPool
+from service.base.session_pool import SessionPool
 from typing import *
 
 
