@@ -7,7 +7,7 @@
             "options": {},
             "realms": [
                 {
-                    "name": "test",
+                    "name": "example",
                     "roles": [
                         {
                             "name": "public",
@@ -68,55 +68,20 @@
                             "type": "websocket",
                             "auth": {
                                 "ticket": {
-                                    "type": "static",
-                                    "principals": {
-                                        "public": {
-                                            "ticket": "secret",
-                                            "role": "public"
-                                        }
-                                    }
+                                   "type": "dynamic",
+                                   "authenticator": "com.example.authentication"
                                 }
                             }
                         },
                         "private": {
                             "type": "websocket",
                             "auth": {
-                                "ticket": {
-                                    "type": "static",
-                                    "principals": {
-                                        "private": {
-                                            "ticket": "secret",
-                                            "role": "private"
-                                        }
-                                    }
+                                "anonymous": {
+                                   "type": "static",
+                                   "role": "public"
                                 }
                             }
                         }
-                    }
-                }
-            ]
-        },
-        {
-            "type": "container",
-            "options": {
-                "pythonpath": [
-                    "../",
-                    "/home/aidar/wampify/wampify/"
-                ]
-            },
-            "components": [
-                {
-                    "type": "class",
-                    "classname": "example.backend.session_factory",
-                    "realm": "test",
-                    "transport": {
-                        "type": "websocket",
-                        "endpoint": {
-                            "type": "tcp",
-                            "host": "127.0.0.1",
-                            "port": 8080
-                        },
-                        "url": "ws://127.0.0.1:8080/private"
                     }
                 }
             ]
