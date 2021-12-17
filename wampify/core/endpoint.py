@@ -6,24 +6,24 @@ from . import error
 from typing import *
 
 
-class BaseEndpoint:
+class Endpoint:
     """
     """
 
-    _endpoint: Union[Awaitable, Callable]
+    _procedure: Union[Awaitable, Callable]
     _validate_payload: bool
     _pmodel: ValidatedFunction
     _serializers: Iterable[Callable]
 
     def __init__(
         self,
-        endpoint: Union[Awaitable, Callable],
+        procedure: Union[Awaitable, Callable],
         validate_payload = True,
         serializers: Iterable[Callable] = DEFAULT_SERIALIZERS
     ):
-        assert callable(endpoint), 'endpoint must be `Callable`'
-        self._endpoint = endpoint
-        self._pmodel = ValidatedFunction(endpoint, None)
+        assert callable(procedure), 'procedure must be `Callable`'
+        self._procedure = procedure
+        self._pmodel = ValidatedFunction(procedure, None)
         self._validate_payload = validate_payload
         self._serializers = serializers
 
@@ -85,10 +85,10 @@ class BaseEndpoint:
         """
         payload = self._validate(*A, **K)
 
-        if is_awaitable(self._endpoint):
-            output = await self._endpoint(**payload)
+        if is_awaitable(self._procedure):
+            output = await self._procedure(**payload)
         else:
-            output = self._endpoint(**payload)
+            output = self._procedure(**payload)
 
         return self._serialize(output)
 
@@ -98,11 +98,4 @@ class BaseEndpoint:
         **K
     ) -> Any:
         return await self.execute(*A, **K)
-
-
-class Endpoint(BaseEndpoint):
-    """
-    """
-
-    # TODO annotations
 

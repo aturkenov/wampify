@@ -3,8 +3,9 @@ from .request import *
 from middleware import *
 from .endpoint import *
 from .session_pool import *
+from .background_task import *
 from .error import *
-from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.exception import ApplicationError, Error
 from shared.serializer import *
 from settings import *
 from typing import *
@@ -13,7 +14,6 @@ from typing import *
 class Wampify:
     """
     """
-
     _M: List[BaseMiddleware]
     _serializers: List[Callable]
     settings: KitchenSettings
@@ -50,20 +50,24 @@ class Wampify:
     def _handle_error(
         self,
         e
-    ) -> Union[BaseException, Mapping]:
+    ) -> Error:
         """
         """
         if self.settings.debug:
             return e
         try:
             e.__init__()
-            name = f'{self.settings.wamp.domain}.{e.name}'
+            name = f'{self.settings.wamp.domain}.error.{e.name}'
             payload = e.to_primitive()
         except:
             e = SomethingWentWrong()
-            name = f'{self.settings.wamp.domain}.{e.name}'
+            name = f'{self.settings.wamp.domain}.error.{e.name}'
             payload = e.to_primitive()
         return ApplicationError(error=name, payload=payload)
+
+    # TODO Separated toolkit initialization method
+    # TODO Separated toolkit raising method
+    # TODO Separated toolkit closing method
 
     async def _entrypoint(
         self,
@@ -73,9 +77,12 @@ class Wampify:
         """
         """
         session_pool = SessionPool(self.settings.session_pool.factories)
+        background_tasks = BackgroundTasks()
+
         story = create_story()
         story.client = request.client
         story.session_pool = session_pool
+        story.background_tasks = background_tasks
         try:
             output = await entrypoint.handle(request)
             await session_pool.close_released()
@@ -87,16 +94,18 @@ class Wampify:
     def add_register(
         self,
         path: str,
-        F: Union[Awaitable, Callable],
+        procedure: Union[Awaitable, Callable],
         settings: EndpointSettings = {}
     ) -> Awaitable:
         """
         """
         endpoint_settings = EndpointSettings(**settings)
         endpoint = Endpoint(
-            F, endpoint_settings.validate_payload, self._serializers
+            procedure,
+            endpoint_settings.validate_payload,
+            self._serializers
         )
-        entrypoint = build_rchain(self._M)
+        entrypoint_middleware = build_rchain(self._M)
 
         async def on_call(
             *A,
@@ -107,29 +116,29 @@ class Wampify:
                 endpoint, _CALL_DETAILS_, A, K
             )
             return await self._entrypoint(
-                entrypoint, call_request
+                entrypoint_middleware, call_request
             )
 
-        self.wamp._cart.register(
-            path, on_call, {
-                'details_arg': '_CALL_DETAILS_'
-            }
+        self.wamp._cart.add_register(
+            path, on_call, { 'details_arg': '_CALL_DETAILS_' }
         )
         return on_call
 
     def add_subscribe(
         self,
         path: str,
-        F: Union[Awaitable, Callable],
+        procedure: Union[Awaitable, Callable],
         settings: EndpointSettings = {}
     ) -> Awaitable:
         """
         """
         endpoint_settings = EndpointSettings(**settings)
         endpoint = Endpoint(
-            F, endpoint_settings.validate_payload, self._serializers
+            procedure,
+            endpoint_settings.validate_payload,
+            self._serializers
         )
-        entrypoint = build_rchain(self._M)
+        entrypoint_middleware = build_rchain(self._M)
 
         async def on_publish(
             *A,
@@ -140,13 +149,11 @@ class Wampify:
                 endpoint, _PUBLISH_DETAILS_, A, K
             )
             return await self._entrypoint(
-                entrypoint, publish_request
+                entrypoint_middleware, publish_request
             )
 
-        self.wamp._cart.subscribe(
-            path, on_publish, {
-                'details_arg': '_PUBLISH_DETAILS_'
-            }
+        self.wamp._cart.add_subscribe(
+            path, on_publish, { 'details_arg': '_PUBLISH_DETAILS_' }
         )
         return on_publish
 
@@ -158,11 +165,11 @@ class Wampify:
         """
         """
         def decorate(
-            F: Callable
+            procedure: Callable
         ):
             return self.add_register(
                 path=path,
-                F=F,
+                procedure=procedure,
                 settings=settings
             )
         return decorate
@@ -175,11 +182,11 @@ class Wampify:
         """
         """
         def decorate(
-            F: Callable
+            procedure: Callable
         ):
             return self.add_subscribe(
                 path=path,
-                F=F,
+                procedure=procedure,
                 settings=settings
             )
         return decorate

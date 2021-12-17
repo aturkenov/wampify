@@ -28,31 +28,31 @@ class WAMPBShoppingCart:
             return path
         return f"{self._domain}.{path}"
 
-    def register(
+    def add_register(
         self,
         path: str,
-        F: Callable,
+        procedure: Callable,
         O: Mapping[str, Any]
     ):
         """
         """
         assert type(path) == str, '`path` must be string'
-        assert callable(F), 'function must be callable'
+        assert callable(procedure), 'function must be callable'
         I = self._create_uri(path)
-        self._R.append((I, F, O))
+        self._R.append((I, procedure, O))
 
-    def subscribe(
+    def add_subscribe(
         self,
         path: str,
-        F: Callable,
+        procedure: Callable,
         O: Mapping[str, Any]
     ):
         """
         """
         assert type(path) == str, '`path` must be string'
-        assert callable(F), 'function must be callable'
+        assert callable(procedure), 'function must be callable'
         I = self._create_uri(path)
-        self._S.append((I, F, O))
+        self._S.append((I, procedure, O))
 
     def get_registered(
         self
