@@ -39,11 +39,18 @@ class WAMPBackendSettings(BaseModel):
     session: WAMPBSessionSettings
 
 
+class SessionPoolSettings(BaseModel):
+    """
+    """
+    factories = []
+
+
 class KitchenSettings(BaseModel):
     """
     """
     debug = False
     wamp: WAMPBackendSettings
+    session_pool: SessionPoolSettings = SessionPoolSettings()
 
 
 def get_validated_settings(data: Mapping) -> KitchenSettings:

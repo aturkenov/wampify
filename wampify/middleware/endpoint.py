@@ -1,11 +1,11 @@
-from .base import RChain
+from .base import BaseMiddleware
 from core.request import *
 from typing import *
 
 
-class EndpointRC(RChain):
+class EndpointMiddleware(BaseMiddleware):
     """
-    It's last Rchain. Just executes enpoint
+    It's last Middleware. Just executes endpoint.
     """
 
     name = 'endpoint'

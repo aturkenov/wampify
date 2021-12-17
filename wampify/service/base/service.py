@@ -2,7 +2,7 @@ from core.request import *
 from typing import *
 
 
-class BaseWService:
+class BaseService:
     """
     """
 

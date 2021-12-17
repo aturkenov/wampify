@@ -1,7 +1,7 @@
-from ...story import Story, get_current_story
+from core.request import *
 
 
-class BaseKProvider:
+class BaseProvider:
     """
     """
 
@@ -13,7 +13,7 @@ class BaseKProvider:
         self.story = get_current_story()
 
 
-class KProvider(BaseKProvider):
+class Provider(BaseProvider):
     """
     """
 

@@ -5,6 +5,7 @@ from typing import *
 
 class Client:
     """
+    Represents
     """
 
     i: Any
@@ -55,7 +56,6 @@ class BaseRequest:
     endpoint: Callable
     A: Iterable[Any]
     K: Mapping[str, Any]
-    story: Story
     client: Client
 
     def __init__(
@@ -67,7 +67,6 @@ class BaseRequest:
         self.endpoint = endpoint
         self.A = A
         self.K = K
-        self.story = create_story()
 
 
 class CallRequest(BaseRequest):
@@ -87,7 +86,6 @@ class CallRequest(BaseRequest):
             role=call_details.caller_authrole,
             session_i=call_details.caller
         )
-        self.story.client = self.client
 
 
 class PublishRequest(BaseRequest):
@@ -107,5 +105,4 @@ class PublishRequest(BaseRequest):
             role=publish_details.publisher_authrole,
             session_i=publish_details.publisher
         )
-        self.story.client = self.client
 

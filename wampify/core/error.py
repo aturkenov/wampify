@@ -85,10 +85,12 @@ class SomethingWentWrong(KBaseError):
 
 class SerializationError(SomethingWentWrong):
     """
+    500
     """
 
 
 class RChainNotBoundError(SomethingWentWrong):
     """
+    500
     """
 

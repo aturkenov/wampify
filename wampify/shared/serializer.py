@@ -15,7 +15,7 @@ def is_primitive(
     v: Any
 ) -> bool:
     """
-    Is data type is primitive?
+    Is primitive data type?
     """
     return type(v) in PRIMITIVES
 

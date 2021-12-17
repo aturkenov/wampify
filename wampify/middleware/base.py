@@ -1,28 +1,28 @@
+from pydantic import BaseModel
 from core.request import *
 from core.error import *
-from pydantic import BaseModel
 from typing import *
 from typing_extensions import *
 
 
-class RChainSettings(BaseModel):
+class MiddlewareSettings(BaseModel):
     """
     """
 
     disabled = False
 
 
-class BaseRChain:
+class BaseMiddleware:
     """
     """
 
     name: str
-    settings: RChainSettings
-    class DefaultSettings(RChainSettings):
+    settings: MiddlewareSettings
+    class DefaultSettings(MiddlewareSettings):
         """
         """
 
-    _next: 'BaseRChain'
+    _next: 'BaseMiddleware'
 
     def __init__(
         self,
@@ -66,28 +66,5 @@ class BaseRChain:
     async def handle(
         self,
         request: BaseRequest
-    ): ...
-
-
-RChainsDT = List['RChain']
-
-
-class RChain(BaseRChain):
-    """
-    Represents basic CoR (Chain of Responsibility) pattern
-    """
-
-    name = 'RChain'
-
-    class DefaultSettings(RChainSettings):
-        """
-        """
-
-    async def handle(
-        self,
-        request: BaseRequest
-    ) -> Any:
-        """
-        """
-        return await self.call_next(request)
+    ) -> Any: ...
 

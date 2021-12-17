@@ -125,6 +125,8 @@ class WAMPBSession(ApplicationSession):
 
 
 class WAMPBackend:
+    """
+    """
 
     settings: WAMPBackendSettings
     session: WAMPBSession

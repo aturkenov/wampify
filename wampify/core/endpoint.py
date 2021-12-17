@@ -57,8 +57,9 @@ class BaseEndpoint:
         data: Any
     ) -> Any:
         """
-        Tryies to serialize function output. First with passed serializers,
-        else with default serializer, otherwise raises `SerializationError` 
+        Tryies to serialize function output. First checks output is primitive,
+        second with passed serializers, else with default serializer,
+        otherwise raises `SerializationError` 
         """
         if is_primitive(data):
             return data    
