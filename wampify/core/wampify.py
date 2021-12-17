@@ -93,7 +93,7 @@ class Wampify:
 
     def add_register(
         self,
-        path: str,
+        uri_segment: str,
         procedure: Union[Awaitable, Callable],
         settings: EndpointSettings = {}
     ) -> Awaitable:
@@ -120,13 +120,13 @@ class Wampify:
             )
 
         self.wamp._cart.add_register(
-            path, on_call, { 'details_arg': '_CALL_DETAILS_' }
+            uri_segment, on_call, { 'details_arg': '_CALL_DETAILS_' }
         )
         return on_call
 
     def add_subscribe(
         self,
-        path: str,
+        uri_segment: str,
         procedure: Union[Awaitable, Callable],
         settings: EndpointSettings = {}
     ) -> Awaitable:
@@ -153,13 +153,13 @@ class Wampify:
             )
 
         self.wamp._cart.add_subscribe(
-            path, on_publish, { 'details_arg': '_PUBLISH_DETAILS_' }
+            uri_segment, on_publish, { 'details_arg': '_PUBLISH_DETAILS_' }
         )
         return on_publish
 
     def register(
         self,
-        path: str,
+        uri_segment: str = None,
         settings: Mapping = {}
     ) -> Awaitable:
         """
@@ -167,8 +167,11 @@ class Wampify:
         def decorate(
             procedure: Callable
         ):
+            nonlocal uri_segment
+            if uri_segment is None:
+                uri_segment = procedure.__name__
             return self.add_register(
-                path=path,
+                uri_segment=uri_segment,
                 procedure=procedure,
                 settings=settings
             )
@@ -176,7 +179,7 @@ class Wampify:
 
     def subscribe(
         self,
-        path: str,
+        uri_segment: str = None,
         settings: Mapping = {}
     ) -> Awaitable:
         """
@@ -184,8 +187,11 @@ class Wampify:
         def decorate(
             procedure: Callable
         ):
+            nonlocal uri_segment
+            if uri_segment is None:
+                uri_segment = procedure.__name__
             return self.add_subscribe(
-                path=path,
+                uri_segment=uri_segment,
                 procedure=procedure,
                 settings=settings
             )
