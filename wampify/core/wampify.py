@@ -1,12 +1,6 @@
 from .wamp import *
-from .request import *
 from middleware import *
-from .endpoint import *
-from .session_pool import *
-from .background_task import *
-from .error import *
-from autobahn.wamp.exception import ApplicationError, Error
-from shared.serializer import *
+from .entrypoint import *
 from settings import *
 from typing import *
 
@@ -16,12 +10,12 @@ class Wampify:
     """
     _M: List[BaseMiddleware]
     _serializers: List[Callable]
-    settings: KitchenSettings
+    settings: WampifySettings
     wamp: WAMPBackend
 
     def __init__(
         self,
-        settings: KitchenSettings
+        settings: WampifySettings
     ) -> None:
         self._M = []
         self._serializers = []
@@ -47,50 +41,6 @@ class Wampify:
         # TODO add some serialization tests here
         self._serializers.append(F)
 
-    def _handle_error(
-        self,
-        e
-    ) -> Error:
-        """
-        """
-        if self.settings.debug:
-            return e
-        try:
-            e.__init__()
-            name = f'{self.settings.wamp.domain}.error.{e.name}'
-            payload = e.to_primitive()
-        except:
-            e = SomethingWentWrong()
-            name = f'{self.settings.wamp.domain}.error.{e.name}'
-            payload = e.to_primitive()
-        return ApplicationError(error=name, payload=payload)
-
-    # TODO Separated toolkit initialization method
-    # TODO Separated toolkit raising method
-    # TODO Separated toolkit closing method
-
-    async def _entrypoint(
-        self,
-        entrypoint: BaseMiddleware,
-        request: BaseRequest
-    ) -> Any:
-        """
-        """
-        session_pool = SessionPool(self.settings.session_pool.factories)
-        background_tasks = BackgroundTasks()
-
-        story = create_story()
-        story.client = request.client
-        story.session_pool = session_pool
-        story.background_tasks = background_tasks
-        try:
-            output = await entrypoint.handle(request)
-            await session_pool.close_released()
-            return output
-        except BaseException as e:
-            await session_pool.raise_released()
-            raise self._handle_error(e)
-
     def add_register(
         self,
         uri_segment: str,
@@ -99,28 +49,23 @@ class Wampify:
     ) -> Awaitable:
         """
         """
-        endpoint_settings = EndpointSettings(**settings)
-        endpoint = Endpoint(
-            procedure,
-            endpoint_settings.validate_payload,
-            self._serializers
+        entrypoint = CallEntrypoint(
+            procedure=procedure,
+            endpoint_settings=EndpointSettings(**settings),
+            user_settings=self.settings,
+            user_middlewares=self._M,
+            user_serializers=self._serializers,
         )
-        entrypoint_middleware = build_rchain(self._M)
 
         async def on_call(
             *A,
             _CALL_DETAILS_,
             **K,
         ):
-            call_request = CallRequest(
-                endpoint, _CALL_DETAILS_, A, K
-            )
-            return await self._entrypoint(
-                entrypoint_middleware, call_request
-            )
+            return await entrypoint(A, K, _CALL_DETAILS_)
 
         self.wamp._cart.add_register(
-            uri_segment, on_call, { 'details_arg': '_CALL_DETAILS_' }
+            uri_segment, on_call, {'details_arg': '_CALL_DETAILS_'}
         )
         return on_call
 
@@ -132,28 +77,23 @@ class Wampify:
     ) -> Awaitable:
         """
         """
-        endpoint_settings = EndpointSettings(**settings)
-        endpoint = Endpoint(
-            procedure,
-            endpoint_settings.validate_payload,
-            self._serializers
+        entrypoint = PublishEntrypoint(
+            procedure=procedure,
+            endpoint_settings=EndpointSettings(**settings),
+            user_settings=self.settings,
+            user_middlewares=self._M,
+            user_serializers=self._serializers,
         )
-        entrypoint_middleware = build_rchain(self._M)
 
         async def on_publish(
             *A,
             _PUBLISH_DETAILS_,
             **K,
         ):
-            publish_request = PublishRequest(
-                endpoint, _PUBLISH_DETAILS_, A, K
-            )
-            return await self._entrypoint(
-                entrypoint_middleware, publish_request
-            )
+            return await entrypoint(A, K, _PUBLISH_DETAILS_)
 
         self.wamp._cart.add_subscribe(
-            uri_segment, on_publish, { 'details_arg': '_PUBLISH_DETAILS_' }
+            uri_segment, on_publish, {'details_arg': '_PUBLISH_DETAILS_'}
         )
         return on_publish
 

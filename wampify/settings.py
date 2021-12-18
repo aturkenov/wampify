@@ -45,7 +45,7 @@ class SessionPoolSettings(BaseModel):
     factories = []
 
 
-class KitchenSettings(BaseModel):
+class WampifySettings(BaseModel):
     """
     """
     debug = False
@@ -53,7 +53,7 @@ class KitchenSettings(BaseModel):
     session_pool: SessionPoolSettings = SessionPoolSettings()
 
 
-def get_validated_settings(data: Mapping) -> KitchenSettings:
+def get_validated_settings(data: Mapping) -> WampifySettings:
     """
     Returns validated user settings
     """
@@ -67,10 +67,10 @@ def get_validated_settings(data: Mapping) -> KitchenSettings:
     class _WAMPBackendSettings(WAMPBackendSettings):
         session: _WAMPBSessionSettings
 
-    class _KitchenSettings(KitchenSettings):
+    class _WampifySettings(WampifySettings):
         wamp: _WAMPBackendSettings
 
-    settings = _KitchenSettings(**data)
+    settings = _WampifySettings(**data)
 
     if settings.wamp.session.factory is None:
         settings.wamp.session.factory = WAMPBSession

@@ -1,7 +1,7 @@
 from typing import Any
 
 
-class KBaseError(BaseException):
+class BaseError(BaseException):
     """
     """
     _is_already_initialized: bool = False
@@ -23,7 +23,7 @@ class KBaseError(BaseException):
         }
 
 
-class PayloadParseError(KBaseError):
+class PayloadParseError(BaseError):
     """
     400
     """
@@ -32,7 +32,7 @@ class PayloadParseError(KBaseError):
     cause = 'The payload must be primitive.'
 
 
-class PayloadValidationError(KBaseError):
+class PayloadValidationError(BaseError):
     """
     400
     """
@@ -40,7 +40,7 @@ class PayloadValidationError(KBaseError):
     name = 'payload_validation_error'
 
 
-class AuthenticationFailed(KBaseError):
+class AuthenticationFailed(BaseError):
     """
     401
     """
@@ -48,7 +48,7 @@ class AuthenticationFailed(KBaseError):
     name = 'authentication_failed'
 
 
-class NotAuthenticated(KBaseError):
+class NotAuthenticated(BaseError):
     """
     401
     """
@@ -57,7 +57,7 @@ class NotAuthenticated(KBaseError):
     cause = 'The request requires authentication.'
 
 
-class PermissionDenied(KBaseError):
+class PermissionDenied(BaseError):
     """
     403
     """
@@ -65,7 +65,7 @@ class PermissionDenied(KBaseError):
     name = 'permission_denied'
     cause = 'You have no permissions.'
 
-class NotFound(KBaseError):
+class NotFound(BaseError):
     """
     404
     """
@@ -74,7 +74,7 @@ class NotFound(KBaseError):
     cause = 'The requested object was not found.'
 
 
-class SomethingWentWrong(KBaseError):
+class SomethingWentWrong(BaseError):
     """
     500
     """

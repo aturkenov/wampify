@@ -1,5 +1,6 @@
 from .base import BaseMiddleware
 from core.request import *
+from core.endpoint import *
 from typing import *
 
 
@@ -9,10 +10,11 @@ class EndpointMiddleware(BaseMiddleware):
     """
 
     name = 'endpoint'
+    endpoint: Endpoint
 
     async def handle(
         self,
         request: BaseRequest
     ):
-        return await request.endpoint(*request.A, **request.K)
+        return await self.endpoint(*request.A, **request.K)
 

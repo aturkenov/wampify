@@ -6,7 +6,7 @@ class BackgroundTasks:
     """
 
     _T: List
-    
+ 
     def __init__(
         self
     ):
