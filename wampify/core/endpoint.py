@@ -1,16 +1,51 @@
+from .error import *
 from inspect import iscoroutinefunction as is_awaitable
 from pydantic import ValidationError
 from pydantic.decorator import ValidatedFunction
 from shared.serializer import *
-from . import error
 from typing import *
 
 
-class Endpoint:
+class _BaseEndpoint:
     """
     """
 
-    _procedure: Union[Awaitable, Callable]
+    _procedure: Union[Coroutine, Callable]
+
+    def __init__(
+        self,
+        procedure: Union[Coroutine, Callable]
+    ):
+        assert callable(procedure), 'procedure must be `Callable`'
+        self._procedure = procedure
+
+    async def execute(
+        self,
+        *A,
+        **K
+    ) -> Any:
+        if is_awaitable(self._procedure):
+            return await self._procedure(*A, **K)
+        else:
+            return self._procedure(*A, **K)
+
+    async def __call__(
+        self,
+        *A,
+        **K
+    ) -> Any:
+        return await self.execute(*A, **K)
+
+
+class SystemEndpoint(_BaseEndpoint):
+    """
+    """
+
+
+class BaseEndpoint(_BaseEndpoint):
+    """
+    """
+
     _validate_payload: bool
     _pmodel: ValidatedFunction
     _serializers: Iterable[Callable]
@@ -26,7 +61,7 @@ class Endpoint:
         self._pmodel = ValidatedFunction(procedure, None)
         self._validate_payload = validate_payload
         self._serializers = serializers
-
+ 
     def _get_pydantic_validation_error_content(self, e: ValidationError):
         return e.errors()
 
@@ -46,7 +81,7 @@ class Endpoint:
         try:
             self._pmodel.model(**values)
         except ValidationError as e:
-            raise error.PayloadValidationError(
+            raise PayloadValidationError(
                 cause=self._get_pydantic_validation_error_content(e)
             )
 
@@ -62,7 +97,7 @@ class Endpoint:
         otherwise raises `SerializationError` 
         """
         if is_primitive(data):
-            return data    
+            return data
 
         for s in self._serializers:
             try:
@@ -73,15 +108,13 @@ class Endpoint:
             return serialize_primitive(data)
         except: ...
 
-        raise error.SerializationError
-
     async def execute(
         self,
         *A,
         **K
     ) -> Any:
         """
-        Executes passed function
+        Executes procedure
         """
         payload = self._validate(*A, **K)
 
@@ -92,10 +125,14 @@ class Endpoint:
 
         return self._serialize(output)
 
-    async def __call__(
-        self,
-        *A,
-        **K
-    ) -> Any:
-        return await self.execute(*A, **K)
+
+class RegisterEndpoint(BaseEndpoint):
+    """
+    """
+
+
+class SubscribeEndpoint(BaseEndpoint):
+    """
+    """
+
 

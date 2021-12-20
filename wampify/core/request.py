@@ -1,5 +1,5 @@
-from autobahn.wamp import CallDetails, EventDetails
 from .client import *
+from autobahn.wamp import CallDetails, EventDetails
 from typing import *
 
 

@@ -1,5 +1,7 @@
-from contextvars import ContextVar
 from .client import *
+from .session_pool import *
+from .background_task import *
+from contextvars import ContextVar
 
 
 class Story:
@@ -8,6 +10,8 @@ class Story:
     """
 
     client: Client
+    session_pool: SessionPool
+    background_tasks: BackgroundTasks
 
 
 current_story_context = ContextVar('current_story_context')
@@ -26,3 +30,4 @@ def get_current_story() -> Story:
     Returns current story by context
     """
     return current_story_context.get()
+

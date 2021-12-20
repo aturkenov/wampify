@@ -11,6 +11,9 @@ class MiddlewareSettings(BaseModel):
 
     disabled = False
 
+    class Config:
+        arbitrary_types_allowed = True
+
 
 class BaseMiddleware:
     """
@@ -18,6 +21,7 @@ class BaseMiddleware:
 
     name: str
     settings: MiddlewareSettings
+
     class DefaultSettings(MiddlewareSettings):
         """
         """
@@ -26,19 +30,19 @@ class BaseMiddleware:
 
     def __init__(
         self,
-        new_settings: Mapping[str, Any] = ...
+        new_settings: Mapping[str, Any] = None
     ) -> None:
-        if new_settings != ...:
+        if new_settings != None:
             self._update_settings(new_settings)
 
     def __call__(
         self,
-        new_settings: Mapping[str, Any] = ...
+        new_settings: Mapping[str, Any] = None
     ) -> Self:
         """
         Returns himself
         """
-        if new_settings != ...:
+        if new_settings != None:
             self._update_settings(new_settings)
         return self
 

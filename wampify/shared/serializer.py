@@ -4,7 +4,8 @@ from typing import *
 
 
 PRIMITIVES = (
-    None,
+    type(None),
+    bytes, 
     bool,
     int, float,
     str,

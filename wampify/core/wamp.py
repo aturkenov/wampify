@@ -1,8 +1,8 @@
+from shared.ensure_deferred import ensure_deferred
+from settings import WAMPBackendSettings, WAMPBSessionSettings
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
 from twisted.internet.defer import inlineCallbacks
-from shared.ensure_deferred import ensure_deferred
-from settings import WAMPBackendSettings, WAMPBSessionSettings
 from typing import *
 
 
@@ -10,7 +10,11 @@ class WAMPBShoppingCart:
     """
     """
 
-    _domain: str
+    _domain: Union[str, None]
+    # uri: register procedure with register option
+    _R: List[Tuple[str, Callable, Mapping[str, Any]]]
+    # uri: subscribe procedure with subscribe option
+    _S: List[Tuple[str, Callable, Mapping[str, Any]]] 
 
     def __init__(
         self,
@@ -35,9 +39,10 @@ class WAMPBShoppingCart:
         O: Mapping[str, Any]
     ):
         """
+        Adds register procdure to shopping cart
         """
         assert type(path) == str, '`path` must be string'
-        assert callable(procedure), 'function must be callable'
+        assert callable(procedure), 'procedure must be callable'
         I = self._create_uri(path)
         self._R.append((I, procedure, O))
 
@@ -48,20 +53,27 @@ class WAMPBShoppingCart:
         O: Mapping[str, Any]
     ):
         """
+        Adds susbscribe procedure to shopping cart
         """
         assert type(path) == str, '`path` must be string'
-        assert callable(procedure), 'function must be callable'
+        assert callable(procedure), 'procedure must be callable'
         I = self._create_uri(path)
         self._S.append((I, procedure, O))
 
     def get_registered(
         self
     ) -> List[Tuple[str, Callable, Mapping[str, Any]]]:
+        """
+        Returns all registered procedures with uri and register options
+        """
         return self._R
 
     def get_subscribed(
         self
     ) -> List[Tuple[str, Callable, Mapping[str, Any]]]:
+        """
+        Returns all subscribed procedures with uri and subscribe options
+        """
         return self._S
 
 
@@ -157,16 +169,16 @@ class WAMPBackend:
 
     def run(
         self,
-        url: str = ...,
-        start_loop = ...
+        url: str = None,
+        start_loop = None
     ):
         """
         """
-        if url is ...:
+        if url is None:
             url = self.settings.url
         assert type(url) == str, 'URL is required'
         runner = ApplicationRunner(url)
-        if start_loop is ...:
+        if start_loop is None:
             start_loop = self.settings.start_loop
         return runner.run(self._create_session, start_reactor=start_loop)
 

@@ -10,7 +10,7 @@ class BaseSessionFactory:
         """
         """
 
-    async def on_raise(self, e):
+    async def on_raise(self):
         """
         """
 
@@ -109,7 +109,6 @@ class SessionPool:
 
     async def raise_released(
         self,
-        e,
         name: SessionName = ...
     ):
         """
@@ -117,7 +116,7 @@ class SessionPool:
         I = self._get_released(name)
         if not isinstance(I, Iterable):
             I = [I]
-        C = [i.on_raise(e) for i in I]
+        C = [i.on_raise() for i in I]
         await asyncio.gather(*C)
 
     async def close_released(

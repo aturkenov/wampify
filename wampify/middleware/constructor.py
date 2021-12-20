@@ -4,11 +4,14 @@ from typing import *
 
 def build_rchain(
     M: List[BaseMiddleware],
-    settings: Mapping = {}
+    settings: Mapping = None
 ) -> BaseMiddleware:
     """
     Builds chain of responsibility
     """
+    if len(M) == 0:
+        raise
+
     first, i = None, None
     for m in M:
         m = m(settings)

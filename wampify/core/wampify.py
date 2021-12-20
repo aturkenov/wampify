@@ -1,6 +1,6 @@
 from .wamp import *
-from middleware import *
 from .entrypoint import *
+from middleware import *
 from settings import *
 from typing import *
 
@@ -8,6 +8,7 @@ from typing import *
 class Wampify:
     """
     """
+
     _M: List[BaseMiddleware]
     _serializers: List[Callable]
     settings: WampifySettings
@@ -15,7 +16,7 @@ class Wampify:
 
     def __init__(
         self,
-        settings: WampifySettings
+        settings: Dict
     ) -> None:
         self._M = []
         self._serializers = []
@@ -24,7 +25,7 @@ class Wampify:
 
     def add_middleware(
         self,
-        m: Callable
+        m: BaseMiddleware
     ) -> None:
         """
         """
@@ -33,20 +34,20 @@ class Wampify:
 
     def add_serializer(
         self,
-        F: Callable
+        s: Callable
     ) -> None:
         """
         """
-        assert callable(F), 'Serializer must be callable'
+        assert callable(s), 'Serializer must be callable'
         # TODO add some serialization tests here
-        self._serializers.append(F)
+        self._serializers.append(s)
 
     def add_register(
         self,
         uri_segment: str,
-        procedure: Union[Awaitable, Callable],
-        settings: EndpointSettings = {}
-    ) -> Awaitable:
+        procedure: Union[Coroutine, Callable],
+        settings: Mapping = {}
+    ) -> Coroutine:
         """
         """
         entrypoint = CallEntrypoint(
@@ -72,9 +73,9 @@ class Wampify:
     def add_subscribe(
         self,
         uri_segment: str,
-        procedure: Union[Awaitable, Callable],
-        settings: EndpointSettings = {}
-    ) -> Awaitable:
+        procedure: Union[Coroutine, Callable],
+        settings: Mapping = {}
+    ) -> Coroutine:
         """
         """
         entrypoint = PublishEntrypoint(
@@ -101,10 +102,10 @@ class Wampify:
         self,
         uri_segment: str = None,
         settings: Mapping = {}
-    ) -> Awaitable:
+    ) -> Coroutine:
         """
         """
-        def decorate(
+        async def decorate(
             procedure: Callable
         ):
             nonlocal uri_segment
@@ -121,7 +122,7 @@ class Wampify:
         self,
         uri_segment: str = None,
         settings: Mapping = {}
-    ) -> Awaitable:
+    ) -> Coroutine:
         """
         """
         def decorate(
@@ -136,11 +137,11 @@ class Wampify:
                 settings=settings
             )
         return decorate
-
+  
     def run(
         self,
-        url: str = ...,
-        start_loop = ...
+        url: str = None,
+        start_loop = None
     ) -> None:
         """
         """

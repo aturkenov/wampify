@@ -1,4 +1,5 @@
 from .story import *
+from .request import *
 from .endpoint import *
 from .session_pool import *
 from .background_task import *
@@ -8,39 +9,50 @@ from autobahn.wamp.exception import *
 from typing import *
 
 
-class BaseEntrypoint:
+class _BaseEntrypoint:
     """
     """
-    settings: WampifySettings
+
     story: Story
-    middleware: BaseMiddleware
+    settings: WampifySettings
 
-    def __init__(
-        self,
-        procedure: Union[Awaitable, Callable],
-        endpoint_settings: EndpointSettings,
-        user_settings: WampifySettings,
-        user_middlewares: List[BaseMiddleware],
-        user_serializers: List[Callable],
-    ):
-        self.settings = user_settings
-        endpoint = Endpoint(
-            procedure=procedure,
-            validate_payload=endpoint_settings.validate_payload,
-            serializers=user_serializers
-        )
-        endpoint_middleware = EndpointMiddleware
-        endpoint_middleware.endpoint = endpoint
-        self.middleware = build_rchain([*user_middlewares, endpoint_middleware])
+    async def _release(
+        self
+    ) -> None:
+        """
+        """
+        self.story.session_pool = SessionPool(self.settings.session_pool.factories)
+        self.story.background_tasks = BackgroundTasks()
 
-    def handle_error(
+    async def _raise_released(
+        self
+    ) -> None:
+        """
+        """
+        await self.story.session_pool.raise_released()
+
+    async def _close_released(
+        self
+    ) -> None:
+        """
+        """
+        await self.story.session_pool.close_released()
+
+    async def execute(
         self,
-        e: Exception
-    ) -> Error:
+        A,
+        K,
+        D
+    ) -> Any: ...
+
+    def _handle_error(
+        self,
+        e: BaseError
+    ) -> None:
         """
         """
         if self.settings.debug:
-            return e
+            raise e
         try:
             e.__init__()
             name = f'{self.settings.wamp.domain}.error.{e.name}'
@@ -49,36 +61,7 @@ class BaseEntrypoint:
             e = SomethingWentWrong()
             name = f'{self.settings.wamp.domain}.error.{e.name}'
             payload = e.to_primitive()
-        return ApplicationError(error=name, payload=payload)
-
-    async def release_required(
-        self
-    ) -> None:
-        """
-        """
-        self.story.session_pool = SessionPool(self.settings.session_pool.factories)
-        self.story.background_tasks = BackgroundTasks()
-
-    async def raise_released(
-        self
-    ) -> None:
-        """
-        """
-        await self.story.session_pool.raise_released()
-
-    async def close_released(
-        self
-    ) -> None:
-        """
-        """
-        await self.story.session_pool.close_released()
-
-    async def enter(
-        self,
-        A,
-        K,
-        D
-    ) -> Any: ...
+        raise ApplicationError(error=name, payload=payload)
 
     async def __call__(
         self,
@@ -86,55 +69,163 @@ class BaseEntrypoint:
         K,
         D
     ) -> Any:
-        return await self.enter(A, K, D)
+        return await self.execute(A, K, D)
+
+
+class SystemEntrypoint(_BaseEntrypoint):
+    """
+    """
+
+    endpoint: SystemEndpoint
+
+    def __init__(
+        self,
+        procedure: Union[Coroutine, Callable]
+    ) -> None:
+        self.endpoint = SystemEndpoint(
+            procedure=procedure,
+        )
+
+    async def execute(
+        self
+    ) -> Any:
+        self.story = create_story()
+        await self._release()
+        try:
+            output = await self.endpoint()
+            await self._close_released()
+            return output
+        except BaseError as e:
+            await self._raise_released()
+            self._handle_error(e)
+
+
+class BaseEntrypoint(_BaseEntrypoint):
+    """
+    """
+
+    middleware: BaseMiddleware
+
+    def __init__(
+        self,
+        procedure: Union[Coroutine, Callable],
+        endpoint_settings: EndpointSettings,
+        user_settings: WampifySettings,
+        user_middlewares: List[BaseMiddleware],
+        user_serializers: List[Callable],
+    ):
+        self.settings = user_settings
+        endpoint = self._create_endpoint(
+            procedure=procedure,
+            endpoint_settings=endpoint_settings,
+            user_serilizers=user_serializers
+        )
+        endpoint_middleware = EndpointMiddleware()
+        endpoint_middleware.set_endpoint(endpoint)
+        self.middleware = build_rchain([*user_middlewares, endpoint_middleware])
+
+    def _create_endpoint(
+        self,
+        procedure: Union[Coroutine, Callable],
+        endpoint_settings: EndpointSettings,
+        user_serilizers: List[Callable]
+    ) -> BaseEndpoint: ...
+
+    async def execute(
+        self,
+        A,
+        K,
+        D
+    ) -> Any:
+        self.story = create_story()
+        request = self._create_request(A, K, D)
+        self.story.client = request.client
+        await self._release()
+        try:
+            output = await self.middleware.handle(request)
+            await self._close_released()
+            return output
+        except BaseError as e:
+            await self._raise_released()
+            self._handle_error(e)
+
+    def _create_request(
+        self,
+        A,
+        K,
+        D
+    ) -> BaseRequest: ...
+
+    def _handle_error(
+        self,
+        e: BaseError
+    ) -> None:
+        """
+        """
+        if self.settings.debug:
+            raise e
+        try:
+            e.__init__()
+            name = f'{self.settings.wamp.domain}.error.{e.name}'
+            payload = e.to_primitive()
+        except:
+            e = SomethingWentWrong()
+            name = f'{self.settings.wamp.domain}.error.{e.name}'
+            payload = e.to_primitive()
+        raise ApplicationError(error=name, payload=payload)
 
 
 class CallEntrypoint(BaseEntrypoint):
     """
     """
 
-    async def enter(
+    def _create_endpoint(
+        self,
+        procedure: Union[Coroutine, Callable],
+        endpoint_settings: EndpointSettings,
+        user_serilizers: List[Callable]
+    ) -> RegisterEndpoint:
+        return RegisterEndpoint(
+            procedure=procedure,
+            validate_payload=endpoint_settings.validate_payload,
+            serializers=user_serilizers
+        )
+
+    def _create_request(
         self,
         A,
         K,
         D
-    ) -> Any:
+    ) -> CallRequest:
         """
         """
-        self.story = create_story()
-        request = CallRequest(A, K, D)
-        self.story.client = request.client
-        await self.release_required()
-        try:
-            output = await self.middleware.handle(request)
-            await self.close_released()
-            return output
-        except BaseException as e:
-            await self.raise_released()
-            raise self.handle_error(e)
+        return CallRequest(A, K, D)
 
 
 class PublishEntrypoint(BaseEntrypoint):
     """
     """
 
-    async def enter(
+    def _create_endpoint(
+        self,
+        procedure: Union[Coroutine, Callable],
+        endpoint_settings: EndpointSettings,
+        user_serilizers: List[Callable]
+    ) -> SubscribeEndpoint:
+        return SubscribeEndpoint(
+            procedure=procedure,
+            validate_payload=endpoint_settings.validate_payload,
+            serializers=user_serilizers
+        )
+
+    def _create_request(
         self,
         A,
         K,
         D
-    ) -> Any:
+    ) -> PublishRequest:
         """
         """
-        self.story = create_story()
-        request = PublishRequest(A, K, D)
-        self.story.client = request.client
-        await self.release_required()
-        try:
-            output = await self.middleware.handle(request)
-            await self.close_released()
-            return output
-        except BaseException as e:
-            await self.raise_released()
-            raise self.handle_error(e)
+        return PublishRequest(A, K, D)
+
 
