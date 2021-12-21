@@ -89,7 +89,7 @@ class SerializationError(SomethingWentWrong):
     """
 
 
-class RChainNotBoundError(SomethingWentWrong):
+class MiddlewareNotBoundError(SomethingWentWrong):
     """
     500
     """

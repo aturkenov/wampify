@@ -3,13 +3,13 @@ from .request import *
 from .endpoint import *
 from .session_pool import *
 from .background_task import *
-from middleware import *
+from .middleware import *
 from settings import *
 from autobahn.wamp.exception import *
 from typing import *
 
 
-class _BaseEntrypoint:
+class FactoryEntrypoint:
     """
     """
 
@@ -45,7 +45,7 @@ class _BaseEntrypoint:
         D
     ) -> Any: ...
 
-    def _handle_error(
+    def _raise_handled_error(
         self,
         e: BaseError
     ) -> None:
@@ -72,7 +72,7 @@ class _BaseEntrypoint:
         return await self.execute(A, K, D)
 
 
-class SystemEntrypoint(_BaseEntrypoint):
+class SystemEntrypoint(FactoryEntrypoint):
     """
     """
 
@@ -80,7 +80,7 @@ class SystemEntrypoint(_BaseEntrypoint):
 
     def __init__(
         self,
-        procedure: Union[Coroutine, Callable]
+        procedure: Callable
     ) -> None:
         self.endpoint = SystemEndpoint(
             procedure=procedure,
@@ -97,10 +97,10 @@ class SystemEntrypoint(_BaseEntrypoint):
             return output
         except BaseError as e:
             await self._raise_released()
-            self._handle_error(e)
+            self._raise_handled_error(e)
 
 
-class BaseEntrypoint(_BaseEntrypoint):
+class SharedEntrypoint(FactoryEntrypoint):
     """
     """
 
@@ -108,7 +108,7 @@ class BaseEntrypoint(_BaseEntrypoint):
 
     def __init__(
         self,
-        procedure: Union[Coroutine, Callable],
+        procedure: Callable,
         endpoint_settings: EndpointSettings,
         user_settings: WampifySettings,
         user_middlewares: List[BaseMiddleware],
@@ -120,16 +120,14 @@ class BaseEntrypoint(_BaseEntrypoint):
             endpoint_settings=endpoint_settings,
             user_serilizers=user_serializers
         )
-        endpoint_middleware = EndpointMiddleware()
-        endpoint_middleware.set_endpoint(endpoint)
-        self.middleware = build_rchain([*user_middlewares, endpoint_middleware])
+        self.middleware = build_rchain([*user_middlewares, endpoint])
 
     def _create_endpoint(
         self,
-        procedure: Union[Coroutine, Callable],
+        procedure: Callable,
         endpoint_settings: EndpointSettings,
         user_serilizers: List[Callable]
-    ) -> BaseEndpoint: ...
+    ) -> SharedEndpoint: ...
 
     async def execute(
         self,
@@ -147,7 +145,7 @@ class BaseEntrypoint(_BaseEntrypoint):
             return output
         except BaseError as e:
             await self._raise_released()
-            self._handle_error(e)
+            self._raise_handled_error(e)
 
     def _create_request(
         self,
@@ -156,32 +154,14 @@ class BaseEntrypoint(_BaseEntrypoint):
         D
     ) -> BaseRequest: ...
 
-    def _handle_error(
-        self,
-        e: BaseError
-    ) -> None:
-        """
-        """
-        if self.settings.debug:
-            raise e
-        try:
-            e.__init__()
-            name = f'{self.settings.wamp.domain}.error.{e.name}'
-            payload = e.to_primitive()
-        except:
-            e = SomethingWentWrong()
-            name = f'{self.settings.wamp.domain}.error.{e.name}'
-            payload = e.to_primitive()
-        raise ApplicationError(error=name, payload=payload)
 
-
-class CallEntrypoint(BaseEntrypoint):
+class CallEntrypoint(SharedEntrypoint):
     """
     """
 
     def _create_endpoint(
         self,
-        procedure: Union[Coroutine, Callable],
+        procedure: Callable,
         endpoint_settings: EndpointSettings,
         user_serilizers: List[Callable]
     ) -> RegisterEndpoint:
@@ -202,13 +182,13 @@ class CallEntrypoint(BaseEntrypoint):
         return CallRequest(A, K, D)
 
 
-class PublishEntrypoint(BaseEntrypoint):
+class PublishEntrypoint(SharedEntrypoint):
     """
     """
 
     def _create_endpoint(
         self,
-        procedure: Union[Coroutine, Callable],
+        procedure: Callable,
         endpoint_settings: EndpointSettings,
         user_serilizers: List[Callable]
     ) -> SubscribeEndpoint:

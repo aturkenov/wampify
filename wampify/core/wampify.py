@@ -1,6 +1,6 @@
 from .wamp import *
 from .entrypoint import *
-from middleware import *
+from .middleware import *
 from settings import *
 from typing import *
 
@@ -45,9 +45,9 @@ class Wampify:
     def add_register(
         self,
         uri_segment: str,
-        procedure: Union[Coroutine, Callable],
+        procedure: Callable,
         settings: Mapping = {}
-    ) -> Coroutine:
+    ) -> Callable:
         """
         """
         entrypoint = CallEntrypoint(
@@ -73,9 +73,9 @@ class Wampify:
     def add_subscribe(
         self,
         uri_segment: str,
-        procedure: Union[Coroutine, Callable],
+        procedure: Callable,
         settings: Mapping = {}
-    ) -> Coroutine:
+    ) -> Callable:
         """
         """
         entrypoint = PublishEntrypoint(
@@ -102,7 +102,7 @@ class Wampify:
         self,
         uri_segment: str = None,
         settings: Mapping = {}
-    ) -> Coroutine:
+    ) -> Callable:
         """
         """
         async def decorate(
@@ -122,7 +122,7 @@ class Wampify:
         self,
         uri_segment: str = None,
         settings: Mapping = {}
-    ) -> Coroutine:
+    ) -> Callable:
         """
         """
         def decorate(

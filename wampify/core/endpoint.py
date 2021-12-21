@@ -1,30 +1,32 @@
 from .error import *
-from inspect import iscoroutinefunction as is_awaitable
+from inspect import iscoroutinefunction as is_async
 from pydantic import ValidationError
 from pydantic.decorator import ValidatedFunction
 from shared.serializer import *
 from typing import *
 
 
-class _BaseEndpoint:
+class FactoryEndpoint:
     """
     """
 
-    _procedure: Union[Coroutine, Callable]
+    _procedure: Callable
+    _is_async: bool
 
     def __init__(
         self,
-        procedure: Union[Coroutine, Callable]
+        procedure: Callable
     ):
         assert callable(procedure), 'procedure must be `Callable`'
         self._procedure = procedure
+        self._is_async = is_async(procedure)
 
     async def execute(
         self,
         *A,
         **K
     ) -> Any:
-        if is_awaitable(self._procedure):
+        if self._is_async:
             return await self._procedure(*A, **K)
         else:
             return self._procedure(*A, **K)
@@ -37,12 +39,12 @@ class _BaseEndpoint:
         return await self.execute(*A, **K)
 
 
-class SystemEndpoint(_BaseEndpoint):
+class SystemEndpoint(FactoryEndpoint):
     """
     """
 
 
-class BaseEndpoint(_BaseEndpoint):
+class SharedEndpoint(FactoryEndpoint):
     """
     """
 
@@ -52,12 +54,11 @@ class BaseEndpoint(_BaseEndpoint):
 
     def __init__(
         self,
-        procedure: Union[Awaitable, Callable],
+        procedure: Callable,
         validate_payload = True,
         serializers: Iterable[Callable] = DEFAULT_SERIALIZERS
     ):
-        assert callable(procedure), 'procedure must be `Callable`'
-        self._procedure = procedure
+        super().__init__(procedure)
         self._pmodel = ValidatedFunction(procedure, None)
         self._validate_payload = validate_payload
         self._serializers = serializers
@@ -118,7 +119,7 @@ class BaseEndpoint(_BaseEndpoint):
         """
         payload = self._validate(*A, **K)
 
-        if is_awaitable(self._procedure):
+        if self._is_async:
             output = await self._procedure(**payload)
         else:
             output = self._procedure(**payload)
@@ -126,12 +127,12 @@ class BaseEndpoint(_BaseEndpoint):
         return self._serialize(output)
 
 
-class RegisterEndpoint(BaseEndpoint):
+class RegisterEndpoint(SharedEndpoint):
     """
     """
 
 
-class SubscribeEndpoint(BaseEndpoint):
+class SubscribeEndpoint(SharedEndpoint):
     """
     """
 
