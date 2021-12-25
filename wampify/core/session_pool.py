@@ -1,25 +1,6 @@
 import asyncio
+from .session_factory import BaseSessionFactory
 from typing import *
-
-
-class BaseSessionFactory:
-    """
-    """
-
-    async def on_release(self):
-        """
-        """
-
-    async def on_raise(self):
-        """
-        """
-
-    async def on_close(self):
-        """
-        """
-
-
-SessionName = NewType('SessionName', str)
 
 
 class FactoryDoesNotExist(BaseException):
@@ -31,8 +12,8 @@ class SessionPool:
     """
     """
 
-    _factories: Mapping[SessionName, BaseSessionFactory] = {}
-    _released: Mapping[SessionName, BaseSessionFactory] = {}
+    _factories: Mapping[str, BaseSessionFactory] = {}
+    _released: Mapping[str, BaseSessionFactory] = {}
 
     def __init__(
         self,
@@ -45,7 +26,7 @@ class SessionPool:
 
     def _get_factory(
         self,
-        name: SessionName
+        name: str
     ) -> BaseSessionFactory:
         """
         """
@@ -56,7 +37,7 @@ class SessionPool:
 
     def _get_released(
         self,
-        name: SessionName = ...
+        name: str = ...
     ) -> Union[BaseSessionFactory, List[BaseSessionFactory]]:
         """
         """
@@ -67,7 +48,7 @@ class SessionPool:
 
     def _is_released(
         self,
-        name: SessionName
+        name: str
     ):
         """
         """
@@ -79,7 +60,7 @@ class SessionPool:
 
     def _get_returning(
         self,
-        name: SessionName
+        name: str
     ) -> Any:
         """
         """
@@ -88,7 +69,7 @@ class SessionPool:
 
     async def _produce(
         self,
-        name: SessionName
+        name: str
     ):
         """
         """
@@ -99,8 +80,8 @@ class SessionPool:
 
     async def release(
         self,
-        name: SessionName
-    ):
+        name: str
+    ) -> Any:
         """
         """
         if not self._is_released(name):
@@ -109,7 +90,7 @@ class SessionPool:
 
     async def raise_released(
         self,
-        name: SessionName = ...
+        name: str = ...
     ):
         """
         """
@@ -121,7 +102,7 @@ class SessionPool:
 
     async def close_released(
         self,
-        name: SessionName = ...
+        name: str = ...
     ):
         """
         """

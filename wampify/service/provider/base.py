@@ -1,19 +1,14 @@
-from core.request import *
+from core.story import *
 
 
 class BaseProvider:
     """
     """
 
-    story: Story
+    _story: Story
 
     def __init__(
         self
     ):
-        self.story = get_current_story()
-
-
-class Provider(BaseProvider):
-    """
-    """
+        self._story = get_current_story()
 

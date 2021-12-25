@@ -10,12 +10,14 @@ def build_rchain(
     """
     Builds chain of responsibility
     """
+    assert isinstance(M, list), 'Must be list of middlewares'
     assert len(M) > 0, 'Must be more than zero middlewares'
+
+    endpoint = M.pop()
 
     first, i = None, None
     for m in M:
-        if not isinstance(m, SharedEndpoint):
-            m = m.__init__(settings)
+        m = m.__init__(settings)
 
         if first is None and i is None:
             first, i = m, m
@@ -24,5 +26,9 @@ def build_rchain(
         i.set_next(m)
         i = m
 
+    if i is None:
+        return endpoint
+
+    i.set_next(endpoint)
     return first
 

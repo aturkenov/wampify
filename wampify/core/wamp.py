@@ -1,8 +1,11 @@
 from shared.ensure_deferred import ensure_deferred
 from settings import WAMPBackendSettings, WAMPBSessionSettings
-from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
+from autobahn.wamp import ISession
+from autobahn.asyncio.wamp import (
+        ApplicationSession as AsyncioApplicationSession,
+        ApplicationRunner as AsyncioApplicationRunner
+    )
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
-from twisted.internet.defer import inlineCallbacks
 from typing import *
 
 
@@ -77,20 +80,19 @@ class WAMPBShoppingCart:
         return self._S
 
 
-class WAMPBSession(ApplicationSession):
+class AsyncioWAMPBSession(AsyncioApplicationSession):
     """
     """
 
     _settings: WAMPBSessionSettings
     _cart: WAMPBShoppingCart
 
-    @inlineCallbacks
-    def onConnect(
+    async def onConnect(
         self
     ):
         """
         """
-        yield self.join(
+        self.join(
             realm=self._settings.realm,
             authmethods=self._settings.authmethods,
             authid=self._settings.authid,
@@ -101,8 +103,7 @@ class WAMPBSession(ApplicationSession):
             resume_token=self._settings.resume_token,
         )
 
-    @inlineCallbacks
-    def onJoin(
+    async def onJoin(
         self,
         details
     ):
@@ -112,28 +113,25 @@ class WAMPBSession(ApplicationSession):
 
         for I, F, O in self._cart.get_registered():
             F = ensure_deferred(F)
-            yield self.register(F, I, RegisterOptions(**O))
+            await self.register(F, I, RegisterOptions(**O))
 
         for I, F, O in self._cart.get_subscribed():
             F = ensure_deferred(F)
-            yield self.subscribe(F, I, SubscribeOptions(**O))
+            await self.subscribe(F, I, SubscribeOptions(**O))
 
-    @inlineCallbacks
-    def onLeave(
+    async def onLeave(
         self,
         details
     ):
         """
         """
-        yield self.disconnect()
+        self.disconnect()
 
-    @inlineCallbacks
-    def onDisconnect(
+    async def onDisconnect(
         self
     ):
         """
         """
-        yield
 
 
 class WAMPBackend:
@@ -141,8 +139,8 @@ class WAMPBackend:
     """
 
     settings: WAMPBackendSettings
-    session: WAMPBSession
-    session_factory: ApplicationSession
+    session: Union[ISession, None]
+    session_factory: ISession
     _cart: WAMPBShoppingCart
 
     def __init__(
@@ -160,7 +158,7 @@ class WAMPBackend:
         self,
         *A,
         **K
-    ) -> ApplicationSession:
+    ) -> AsyncioWAMPBSession:
         """
         """
         assert self.session is None
@@ -177,8 +175,8 @@ class WAMPBackend:
         if url is None:
             url = self.settings.url
         assert type(url) == str, 'URL is required'
-        runner = ApplicationRunner(url)
+        runner = AsyncioApplicationRunner(url)
         if start_loop is None:
             start_loop = self.settings.start_loop
-        return runner.run(self._create_session, start_reactor=start_loop)
+        return runner.run(self._create_session, start_loop=start_loop)
 

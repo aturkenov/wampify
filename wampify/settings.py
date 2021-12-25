@@ -57,7 +57,7 @@ def get_validated_settings(data: Mapping) -> WampifySettings:
     """
     Returns validated user settings
     """
-    from core.wamp import WAMPBSession
+    from core.wamp import AsyncioWAMPBSession
 
     class _WAMPBSessionSettings(WAMPBSessionSettings):
         ...
@@ -73,7 +73,7 @@ def get_validated_settings(data: Mapping) -> WampifySettings:
     settings = _WampifySettings(**data)
 
     if settings.wamp.session.factory is None:
-        settings.wamp.session.factory = WAMPBSession
+        settings.wamp.session.factory = AsyncioWAMPBSession
     
     return settings
 

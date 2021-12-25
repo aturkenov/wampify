@@ -98,12 +98,21 @@ class Wampify:
         )
         return on_publish
 
+    def add_event(
+        self,
+    ) -> Callable:
+        """
+        System Event Listener
+        """
+        ...
+
     def register(
         self,
         uri_segment: str = None,
         settings: Mapping = {}
     ) -> Callable:
         """
+        Decorator
         """
         async def decorate(
             procedure: Callable
@@ -124,6 +133,7 @@ class Wampify:
         settings: Mapping = {}
     ) -> Callable:
         """
+        Decorator
         """
         def decorate(
             procedure: Callable
@@ -137,7 +147,15 @@ class Wampify:
                 settings=settings
             )
         return decorate
-  
+
+    def on(
+        self,
+    ) -> Callable:
+        """
+        Decorator
+        """
+        ...  
+
     def run(
         self,
         url: str = None,

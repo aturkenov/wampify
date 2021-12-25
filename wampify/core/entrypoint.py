@@ -65,11 +65,9 @@ class FactoryEntrypoint:
 
     async def __call__(
         self,
-        A,
-        K,
-        D
+        *A,
     ) -> Any:
-        return await self.execute(A, K, D)
+        return await self.execute(*A)
 
 
 class SystemEntrypoint(FactoryEntrypoint):
