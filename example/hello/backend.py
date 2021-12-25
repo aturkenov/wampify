@@ -1,7 +1,3 @@
-import sys
-sys.path.append('/home/aidar/wampify')
-sys.path.append('/home/aidar/wampify/wampify')
-
 from wampify.core.wampify import Wampify
 
 
@@ -11,18 +7,22 @@ wampify = Wampify(
         'wamp': {
             'domain': 'com.example',
             'url': 'ws://127.0.0.1:8080/private',
-            'session': { 'realm': 'example' }
+            'session': {
+                'realm': 'example',
+                'show_registered': True,
+                'show_subscribed': True
+            }
         }
     }
 )
 
 
-# @wampify.register('hello')
+@wampify.register
 async def hello(name: str = 'anonymous'):
     return f'Hello, {name}!'
 
 
-wampify.add_register('hello', hello)
+# wampify.add_register('hello', hello)
 
 
 if __name__ == '__main__':

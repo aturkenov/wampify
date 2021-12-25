@@ -28,6 +28,8 @@ class WAMPBSessionSettings(BaseModel):
     resumable: str = None
     resume_session: str = None
     resume_token: str = None
+    show_registered = False
+    show_subscribed = False
 
 
 class WAMPBackendSettings(BaseModel):

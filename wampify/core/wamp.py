@@ -113,9 +113,13 @@ class AsyncioWAMPBSession(AsyncioApplicationSession):
 
         for I, F, O in self._cart.get_registered():
             await self.register(F, I, RegisterOptions(**O))
+            if self._settings.show_registered:
+                print(f'{I} was registered')
 
         for I, F, O in self._cart.get_subscribed():
             await self.subscribe(F, I, SubscribeOptions(**O))
+            if self._settings.show_registered:
+                print(f'{I} was subscribed')
 
     async def onLeave(
         self,

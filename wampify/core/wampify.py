@@ -44,7 +44,7 @@ class Wampify:
 
     def add_register(
         self,
-        uri_segment: str,
+        path: str,
         procedure: Callable,
         settings: Mapping = {}
     ) -> Callable:
@@ -66,13 +66,13 @@ class Wampify:
             return await entrypoint(A, K, _CALL_DETAILS_)
 
         self.wamp._cart.add_register(
-            uri_segment, on_call, {'details_arg': '_CALL_DETAILS_'}
+            path, on_call, {'details_arg': '_CALL_DETAILS_'}
         )
         return on_call
 
     def add_subscribe(
         self,
-        uri_segment: str,
+        path: str,
         procedure: Callable,
         settings: Mapping = {}
     ) -> Callable:
@@ -94,7 +94,7 @@ class Wampify:
             return await entrypoint(A, K, _PUBLISH_DETAILS_)
 
         self.wamp._cart.add_subscribe(
-            uri_segment, on_publish, {'details_arg': '_PUBLISH_DETAILS_'}
+            path, on_publish, {'details_arg': '_PUBLISH_DETAILS_'}
         )
         return on_publish
 
@@ -108,28 +108,8 @@ class Wampify:
 
     def register(
         self,
-        uri_segment: str = None,
-        settings: Mapping = {}
-    ) -> Callable:
-        """
-        Decorator
-        """
-        async def decorate(
-            procedure: Callable
-        ):
-            nonlocal uri_segment
-            if uri_segment is None:
-                uri_segment = procedure.__name__
-            return self.add_register(
-                uri_segment=uri_segment,
-                procedure=procedure,
-                settings=settings
-            )
-        return decorate
-
-    def subscribe(
-        self,
-        uri_segment: str = None,
+        path_or_procedure: str = None,
+        *,
         settings: Mapping = {}
     ) -> Callable:
         """
@@ -138,14 +118,56 @@ class Wampify:
         def decorate(
             procedure: Callable
         ):
-            nonlocal uri_segment
-            if uri_segment is None:
-                uri_segment = procedure.__name__
-            return self.add_subscribe(
-                uri_segment=uri_segment,
+            path = path_or_procedure
+            if path_or_procedure is None:
+                path = procedure.__name__
+            self.add_register(
+                path=path,
                 procedure=procedure,
                 settings=settings
             )
+            return procedure
+        if callable(path_or_procedure):
+            procedure = path_or_procedure
+            path = procedure.__name__
+            self.add_register(
+                path=path,
+                procedure=path_or_procedure,
+                settings=settings
+            )
+            return procedure
+        return decorate
+
+    def subscribe(
+        self,
+        path_or_procedure: str = None,
+        *,
+        settings: Mapping = {}
+    ) -> Callable:
+        """
+        Decorator
+        """
+        def decorate(
+            procedure: Callable
+        ):
+            path = path_or_procedure
+            if path_or_procedure is None:
+                path = procedure.__name__
+            self.add_subscribe(
+                path=path,
+                procedure=procedure,
+                settings=settings
+            )
+            return procedure
+        if callable(path_or_procedure):
+            procedure = path_or_procedure
+            path = procedure.__name__
+            self.add_subscribe(
+                path=path,
+                procedure=path_or_procedure,
+                settings=settings
+            )
+            return procedure
         return decorate
 
     def on(
