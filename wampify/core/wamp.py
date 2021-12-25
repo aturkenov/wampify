@@ -112,11 +112,9 @@ class AsyncioWAMPBSession(AsyncioApplicationSession):
         print('Session was joined')
 
         for I, F, O in self._cart.get_registered():
-            F = ensure_deferred(F)
             await self.register(F, I, RegisterOptions(**O))
 
         for I, F, O in self._cart.get_subscribed():
-            F = ensure_deferred(F)
             await self.subscribe(F, I, SubscribeOptions(**O))
 
     async def onLeave(

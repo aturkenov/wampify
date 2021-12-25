@@ -74,4 +74,3 @@ class BaseMiddleware:
     ) -> Coroutine:
         return await self.handle(request)
 
-

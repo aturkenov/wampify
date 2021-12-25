@@ -19,19 +19,19 @@ class ClientSession(ApplicationSession):
         print(answer)
         # >>> Hello, wampify!
         
-        # Try to call without name
-        answer = await self.call('com.example.hello')
-        print(answer)
-        # >>> Hello, anonymous!
+        # # Try to call without name
+        # answer = await self.call('com.example.hello')
+        # print(answer)
+        # # >>> Hello, anonymous!
         
-        # Try to send something other, e.g. name = 1
-        answer = await self.call(
-            'com.example.hello',
-            name=1
-        )
-        print(answer)
-        # >>> Hello, 1!
-        # It returns 'Hello, 1!', because str(1) == '1'
+        # # Try to send something other, e.g. name = 1
+        # answer = await self.call(
+        #     'com.example.hello',
+        #     name=1
+        # )
+        # print(answer)
+        # # >>> Hello, 1!
+        # # It returns 'Hello, 1!', because str(1) == '1'
         
 
 

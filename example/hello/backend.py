@@ -1,6 +1,6 @@
 import sys
-sys.path.append('../..')
-sys.path.append('../../wampify')
+sys.path.append('/home/aidar/wampify')
+sys.path.append('/home/aidar/wampify/wampify')
 
 from wampify.core.wampify import Wampify
 
@@ -17,9 +17,12 @@ wampify = Wampify(
 )
 
 
-@wampify.register('hello')
-def hello(name: str = 'anonymous'):
+# @wampify.register('hello')
+async def hello(name: str = 'anonymous'):
     return f'Hello, {name}!'
+
+
+wampify.add_register('hello', hello)
 
 
 if __name__ == '__main__':

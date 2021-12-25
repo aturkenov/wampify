@@ -113,12 +113,12 @@ class SharedEntrypoint(FactoryEntrypoint):
         user_serializers: List[Callable],
     ):
         self.settings = user_settings
-        endpoint = self._create_endpoint(
+        self.endpoint = self._create_endpoint(
             procedure=procedure,
             endpoint_settings=endpoint_settings,
             user_serilizers=user_serializers
         )
-        self.middleware = build_rchain([*user_middlewares, endpoint])
+        self.middleware = build_rchain([*user_middlewares, self.endpoint])
 
     def _create_endpoint(
         self,
@@ -138,7 +138,10 @@ class SharedEntrypoint(FactoryEntrypoint):
         self.story.client = request.client
         await self._release()
         try:
-            output = await self.middleware.handle(request)
+            if self.middleware is self.endpoint:
+                output = await self.endpoint(*request.A, **request.K)
+            else:
+                output = await self.middleware(request)
             await self._close_released()
             return output
         except BaseError as e:
