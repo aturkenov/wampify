@@ -78,10 +78,12 @@ class SystemEntrypoint(FactoryEntrypoint):
 
     def __init__(
         self,
-        procedure: Callable
+        procedure: Callable,
+        user_settings: WampifySettings
     ) -> None:
+        self.settings = user_settings
         self.endpoint = SystemEndpoint(
-            procedure=procedure,
+            procedure=procedure
         )
 
     async def execute(

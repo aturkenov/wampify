@@ -107,7 +107,10 @@ class Wampify:
         """
         System Event Listener
         """
-        entrypoint = SystemEntrypoint(procedure=procedure)
+        entrypoint = SystemEntrypoint(
+            procedure=procedure,
+            user_settings=self.settings
+        )
         self.wamp._cart.add_event_listener(event_name, entrypoint, settings)
 
     def register(
@@ -144,7 +147,7 @@ class Wampify:
 
     def subscribe(
         self,
-        path_or_procedure: str = None,
+        path_or_procedure: Union[str, Callable] = None,
         *,
         settings: Mapping = {}
     ) -> Callable:
@@ -176,7 +179,7 @@ class Wampify:
 
     def on(
         self,
-        event_name: str,
+        event_name_or_procedure: Union[str, Callable] = None,
         settings: Mapping = {}
     ) -> Callable:
         """
@@ -185,6 +188,18 @@ class Wampify:
         def decorate(
             procedure: Callable
         ):
+            event_name = event_name_or_procedure
+            if event_name is None:
+                event_name = procedure.__name__
+            self.add_event_listener(
+                event_name=event_name,
+                procedure=procedure,
+                settings=settings
+            )
+            return procedure
+        if callable(event_name_or_procedure):
+            procedure = event_name_or_procedure
+            event_name = procedure.__name__
             self.add_event_listener(
                 event_name=event_name,
                 procedure=procedure,

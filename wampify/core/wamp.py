@@ -5,7 +5,6 @@ from autobahn.asyncio.wamp import (
         ApplicationRunner as AsyncioApplicationRunner
     )
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
-from asyncio import iscoroutine as is_awaitable
 from typing import *
 
 
@@ -28,6 +27,7 @@ class WAMPBShoppingCart:
         self._domain = domain
         self._R = []
         self._S = []
+        self._E = {} 
         for event_name in self.AVAILABLE_EVENTS:
             self._E[event_name] = []
 
@@ -146,10 +146,8 @@ class AsyncioWAMPBSession(AsyncioApplicationSession):
                 print(f'{I} was subscribed')
         
         for F, O in self._cart.get_event_listeners('joined'):
-            if is_awaitable(F):
-                await F()
-            else:
-                F()
+            await F()
+                
 
     async def onLeave(
         self,
@@ -159,10 +157,7 @@ class AsyncioWAMPBSession(AsyncioApplicationSession):
         """
         self.disconnect()
         for F, O in self._cart.get_event_listeners('leaved'):
-            if is_awaitable(F):
-                await F()
-            else:
-                F()
+            await F()
 
     async def onDisconnect(
         self
