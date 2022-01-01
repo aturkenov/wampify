@@ -1,7 +1,3 @@
-import sys
-sys.path.append('../..')
-sys.path.append('../../wampify')
-
 from wampify.core.wampify import Wampify
 
 
