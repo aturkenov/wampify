@@ -118,7 +118,41 @@ class SharedEntrypoint(FactoryEntrypoint):
             endpoint_settings=endpoint_settings,
             user_serilizers=user_serializers
         )
-        self.middleware = build_rchain([*user_middlewares, self.endpoint])
+        async def endpoint_as_middleware(request: BaseRequest):
+            return await self.endpoint(*request.A, **request.K)
+        self.middleware = self._build_responsibility_chain([
+            *user_middlewares, endpoint_as_middleware
+        ])
+
+    def _build_responsibility_chain(
+        self,
+        M: List[Union[BaseMiddleware, SharedEndpoint]],
+        settings: Mapping = None
+    ) -> BaseMiddleware:
+        """
+        Builds chain of responsibility
+        """
+        assert isinstance(M, list), 'Must be list of middlewares'
+        assert len(M) > 0, 'Must be more than zero middlewares'
+
+        endpoint = M.pop()
+
+        first, i = None, None
+        for m in M:
+            m = m.__init__(settings)
+
+            if first is None and i is None:
+                first, i = m, m
+                continue
+
+            i.set_next(m)
+            i = m
+
+        if i is None:
+            return endpoint
+
+        i.set_next(endpoint)
+        return first
 
     def _create_endpoint(
         self,
@@ -138,10 +172,7 @@ class SharedEntrypoint(FactoryEntrypoint):
         self.story.client = request.client
         await self._release()
         try:
-            if self.middleware is self.endpoint:
-                output = await self.endpoint(*request.A, **request.K)
-            else:
-                output = await self.middleware(request)
+            output = await self.middleware(request)
             await self._close_released()
             return output
         except BaseError as e:

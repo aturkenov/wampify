@@ -98,13 +98,17 @@ class Wampify:
         )
         return on_publish
 
-    def add_event(
+    def add_event_listener(
         self,
+        event_name: str,
+        procedure: Callable,
+        settings = {} 
     ) -> Callable:
         """
         System Event Listener
         """
-        ...
+        entrypoint = SystemEntrypoint(procedure=procedure)
+        self.wamp._cart.add_event_listener(event_name, entrypoint, settings)
 
     def register(
         self,
@@ -172,11 +176,22 @@ class Wampify:
 
     def on(
         self,
+        event_name: str,
+        settings: Mapping = {}
     ) -> Callable:
         """
         Decorator
         """
-        ...  
+        def decorate(
+            procedure: Callable
+        ):
+            self.add_event_listener(
+                event_name=event_name,
+                procedure=procedure,
+                settings=settings
+            )
+            return procedure
+        return decorate
 
     def run(
         self,
