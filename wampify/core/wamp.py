@@ -13,11 +13,12 @@ class WAMPBShoppingCart:
     """
 
     _domain: Union[str, None]
-    # register uri: procedure, option
-    _R: List[Tuple[str, Callable, Mapping[str, Any]]]
-    # subscribe uri: procedure, option
-    _S: List[Tuple[str, Callable, Mapping[str, Any]]] 
-    _E: Dict[str, List] # signals
+    # register uri: procedure, options
+    _R: List[Tuple[str, Callable, Mapping]]
+    # subscribe uri: procedure, options
+    _S: List[Tuple[str, Callable, Mapping]]
+    # signal name: (procedures, options)[]
+    _E: Dict[str, List[Tuple[Callable, Mapping]]]
 
     def __init__(
         self,
@@ -73,6 +74,7 @@ class WAMPBShoppingCart:
         """
         Adds signal 
         """
+        assert type(name) == str, 'signal name must be string'
         assert callable(procedure), 'procedure must be Callable'
         self._E.setdefault(name, [])
         _ = procedure, settings
@@ -96,9 +98,17 @@ class WAMPBShoppingCart:
 
     def get_signals(
         self,
-        event_name
-    ) -> List[Callable]:
-        return self._E.get(event_name, [])
+        name: str
+    ) -> List[Tuple[Callable, Mapping]]:
+        return self._E.get(name, [])
+
+    async def fire(
+        self,
+        name: str
+    ) -> None:
+        S = self.get_signals(name)
+        for procedure, options in S:
+            await procedure()
 
 
 class AsyncioWampifySession(AsyncioApplicationSession):
@@ -142,6 +152,8 @@ class AsyncioWampifySession(AsyncioApplicationSession):
             if self._settings.show_registered:
                 print(f'{I} was subscribed')
 
+        await self._cart.fire('session_joined')
+
     async def onLeave(
         self,
         details
@@ -149,6 +161,8 @@ class AsyncioWampifySession(AsyncioApplicationSession):
         """
         """
         self.disconnect()
+ 
+        await self._cart.fire('session_leaved')
 
     async def onDisconnect(
         self
