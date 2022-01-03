@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Extra, AnyUrl
+from pydantic import BaseModel, Extra 
 from typing import *
 
 
@@ -16,7 +16,7 @@ class EndpointSettings(BaseModel):
     validate_payload = True
 
 
-class WAMPBSessionSettings(BaseModel):
+class WampifySessionSettings(BaseModel):
     """
     """
     realm: str
@@ -38,7 +38,7 @@ class WAMPBackendSettings(BaseModel):
     domain: str = None
     url: str = None
     start_loop = True
-    session: WAMPBSessionSettings
+    session: WampifySessionSettings
 
 
 class SessionPoolSettings(BaseModel):
@@ -59,15 +59,15 @@ def get_validated_settings(data: Mapping) -> WampifySettings:
     """
     Returns validated user settings
     """
-    from core.wamp import AsyncioWAMPBSession
+    from core.wamp import AsyncioWampifySession 
 
-    class _WAMPBSessionSettings(WAMPBSessionSettings):
+    class _WampifySessionSettings(WampifySessionSettings):
         ...
         # FIXME
-        # factory: WAMPBSession = WAMPBSession
+        # factory: WampifySession = WampifySession
 
     class _WAMPBackendSettings(WAMPBackendSettings):
-        session: _WAMPBSessionSettings
+        session: _WampifySessionSettings
 
     class _WampifySettings(WampifySettings):
         wamp: _WAMPBackendSettings
@@ -75,7 +75,7 @@ def get_validated_settings(data: Mapping) -> WampifySettings:
     settings = _WampifySettings(**data)
 
     if settings.wamp.session.factory is None:
-        settings.wamp.session.factory = AsyncioWAMPBSession
-    
+        settings.wamp.session.factory = AsyncioWampifySession
+
     return settings
 

@@ -51,11 +51,8 @@ class Wampify:
         """
         """
         entrypoint = CallEntrypoint(
-            procedure=procedure,
-            endpoint_settings=EndpointSettings(**settings),
-            user_settings=self.settings,
-            user_middlewares=self._M,
-            user_serializers=self._serializers,
+            procedure, EndpointSettings(**settings),
+            self.settings, self._M, self._serializers,
         )
 
         async def on_call(
@@ -79,11 +76,8 @@ class Wampify:
         """
         """
         entrypoint = PublishEntrypoint(
-            procedure=procedure,
-            endpoint_settings=EndpointSettings(**settings),
-            user_settings=self.settings,
-            user_middlewares=self._M,
-            user_serializers=self._serializers,
+            procedure, EndpointSettings(**settings),
+            self.settings, self._M, self._serializers,
         )
 
         async def on_publish(
@@ -98,20 +92,18 @@ class Wampify:
         )
         return on_publish
 
-    def add_event_listener(
+    def add_signal(
         self,
-        event_name: str,
+        name: str,
         procedure: Callable,
         settings = {} 
     ) -> Callable:
         """
-        System Event Listener
+        Adds signal
         """
-        entrypoint = SystemEntrypoint(
-            procedure=procedure,
-            user_settings=self.settings
-        )
-        self.wamp._cart.add_event_listener(event_name, entrypoint, settings)
+        entrypoint = SystemEntrypoint(procedure, self.settings)
+        self.wamp._cart.add_signal(name, entrypoint, settings)
+        return entrypoint.execute
 
     def register(
         self,
@@ -128,20 +120,12 @@ class Wampify:
             path = path_or_procedure
             if path_or_procedure is None:
                 path = procedure.__name__
-            self.add_register(
-                path=path,
-                procedure=procedure,
-                settings=settings
-            )
+            self.add_register(path, path_or_procedure, settings)
             return procedure
         if callable(path_or_procedure):
             procedure = path_or_procedure
             path = procedure.__name__
-            self.add_register(
-                path=path,
-                procedure=path_or_procedure,
-                settings=settings
-            )
+            self.add_register(path, path_or_procedure, settings)
             return procedure
         return decorate
 
@@ -160,26 +144,18 @@ class Wampify:
             path = path_or_procedure
             if path_or_procedure is None:
                 path = procedure.__name__
-            self.add_subscribe(
-                path=path,
-                procedure=procedure,
-                settings=settings
-            )
+            self.add_subscribe(path, path_or_procedure, settings)
             return procedure
         if callable(path_or_procedure):
             procedure = path_or_procedure
             path = procedure.__name__
-            self.add_subscribe(
-                path=path,
-                procedure=path_or_procedure,
-                settings=settings
-            )
+            self.add_subscribe(path, path_or_procedure, settings)
             return procedure
         return decorate
 
-    def on(
+    def on_signal(
         self,
-        event_name_or_procedure: Union[str, Callable] = None,
+        name_or_procedure: Union[str, Callable] = None,
         settings: Mapping = {}
     ) -> Callable:
         """
@@ -188,23 +164,15 @@ class Wampify:
         def decorate(
             procedure: Callable
         ):
-            event_name = event_name_or_procedure
-            if event_name is None:
-                event_name = procedure.__name__
-            self.add_event_listener(
-                event_name=event_name,
-                procedure=procedure,
-                settings=settings
-            )
+            name = name_or_procedure
+            if name is None:
+                name = procedure.__name__
+            self.add_signal(name, procedure, settings)
             return procedure
-        if callable(event_name_or_procedure):
-            procedure = event_name_or_procedure
-            event_name = procedure.__name__
-            self.add_event_listener(
-                event_name=event_name,
-                procedure=procedure,
-                settings=settings
-            )
+        if callable(name_or_procedure):
+            procedure = name_or_procedure
+            name = procedure.__name__
+            self.add_signal(name, procedure, settings)
             return procedure
         return decorate
 
@@ -215,5 +183,5 @@ class Wampify:
     ) -> None:
         """
         """
-        self.wamp.run(url=url, start_loop=start_loop)
+        self.wamp.run(url, start_loop)
 

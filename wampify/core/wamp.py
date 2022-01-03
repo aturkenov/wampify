@@ -1,4 +1,4 @@
-from settings import WAMPBackendSettings, WAMPBSessionSettings
+from settings import WAMPBackendSettings, WampifySessionSettings
 from autobahn.wamp import ISession
 from autobahn.asyncio.wamp import (
         ApplicationSession as AsyncioApplicationSession,
@@ -13,12 +13,11 @@ class WAMPBShoppingCart:
     """
 
     _domain: Union[str, None]
-    AVAILABLE_EVENTS = ['joined', 'leaved', ]
-    # uri: register procedure with register option
+    # register uri: procedure, option
     _R: List[Tuple[str, Callable, Mapping[str, Any]]]
-    # uri: subscribe procedure with subscribe option
+    # subscribe uri: procedure, option
     _S: List[Tuple[str, Callable, Mapping[str, Any]]] 
-    _E: Mapping[str, Callable]
+    _E: Dict[str, List] # signals
 
     def __init__(
         self,
@@ -27,9 +26,7 @@ class WAMPBShoppingCart:
         self._domain = domain
         self._R = []
         self._S = []
-        self._E = {} 
-        for event_name in self.AVAILABLE_EVENTS:
-            self._E[event_name] = []
+        self._E = {}
 
     def _create_uri(
         self,
@@ -49,7 +46,7 @@ class WAMPBShoppingCart:
         Adds register procdure
         """
         assert type(path) == str, 'path must be string'
-        assert callable(procedure), 'procedure must be callable'
+        assert callable(procedure), 'procedure must be Callable'
         I = self._create_uri(path)
         self._R.append((I, procedure, O))
 
@@ -63,23 +60,23 @@ class WAMPBShoppingCart:
         Adds susbscribe procedure
         """
         assert type(path) == str, 'path must be string'
-        assert callable(procedure), 'procedure must be callable'
+        assert callable(procedure), 'procedure must be Callable'
         I = self._create_uri(path)
         self._S.append((I, procedure, O))
 
-    def add_event_listener(
+    def add_signal(
         self,
-        event_name: str,
+        name: str,
         procedure: Callable,
         settings: Mapping = {}
     ):
         """
-        Adds event listener
+        Adds signal 
         """
-        assert event_name in self.AVAILABLE_EVENTS, 'event_name not found'
-        assert callable(procedure), 'procedure must be callable'
+        assert callable(procedure), 'procedure must be Callable'
+        self._E.setdefault(name, [])
         _ = procedure, settings
-        self._E[event_name].append(_)
+        self._E[name].append(_)
 
     def get_registered(
         self
@@ -96,19 +93,19 @@ class WAMPBShoppingCart:
         Returns all subscribed procedures with uri and subscribe options
         """
         return self._S
-    
-    def get_event_listeners(
+
+    def get_signals(
         self,
         event_name
     ) -> List[Callable]:
         return self._E.get(event_name, [])
 
 
-class AsyncioWAMPBSession(AsyncioApplicationSession):
+class AsyncioWampifySession(AsyncioApplicationSession):
     """
     """
 
-    _settings: WAMPBSessionSettings
+    _settings: WampifySessionSettings
     _cart: WAMPBShoppingCart
 
     async def onConnect(
@@ -144,10 +141,6 @@ class AsyncioWAMPBSession(AsyncioApplicationSession):
             await self.subscribe(F, I, SubscribeOptions(**O))
             if self._settings.show_registered:
                 print(f'{I} was subscribed')
-        
-        for F, O in self._cart.get_event_listeners('joined'):
-            await F()
-                
 
     async def onLeave(
         self,
@@ -156,8 +149,6 @@ class AsyncioWAMPBSession(AsyncioApplicationSession):
         """
         """
         self.disconnect()
-        for F, O in self._cart.get_event_listeners('leaved'):
-            await F()
 
     async def onDisconnect(
         self
@@ -190,7 +181,7 @@ class WAMPBackend:
         self,
         *A,
         **K
-    ) -> AsyncioWAMPBSession:
+    ) -> ISession:
         """
         """
         assert self.session is None

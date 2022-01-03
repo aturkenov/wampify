@@ -17,7 +17,7 @@ class FactoryEndpoint:
         self,
         procedure: Callable
     ):
-        assert callable(procedure), 'procedure must be `Callable`'
+        assert callable(procedure), 'procedure must be Callable'
         self._procedure = procedure
         self._is_async = is_async(procedure)
 
@@ -26,6 +26,9 @@ class FactoryEndpoint:
         *A,
         **K
     ) -> Any:
+        """
+        Executes procedure
+        """
         if self._is_async:
             return await self._procedure(*A, **K)
         else:
@@ -114,9 +117,6 @@ class SharedEndpoint(FactoryEndpoint):
         *A,
         **K
     ) -> Any:
-        """
-        Executes procedure
-        """
         payload = self._validate(*A, **K)
 
         if self._is_async:
@@ -135,5 +135,4 @@ class RegisterEndpoint(SharedEndpoint):
 class SubscribeEndpoint(SharedEndpoint):
     """
     """
-
 

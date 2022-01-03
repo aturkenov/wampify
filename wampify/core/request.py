@@ -27,6 +27,8 @@ class CallRequest(BaseRequest):
     """
     """
 
+    D: CallDetails 
+
     def __init__(
         self,
         A: Iterable[Any] = [],
@@ -46,6 +48,8 @@ class PublishRequest(BaseRequest):
     """
     """
 
+    D: EventDetails
+
     def __init__(
         self,
         A: Iterable[Any] = [],
@@ -59,5 +63,4 @@ class PublishRequest(BaseRequest):
                 role=D.publisher_authrole,
                 session_i=D.publisher
             )
-
 

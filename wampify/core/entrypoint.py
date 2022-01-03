@@ -13,14 +13,24 @@ class FactoryEntrypoint:
     """
     """
 
+    endpoint: SystemEndpoint
     story: Story
     settings: WampifySettings
+
+    def __init__(
+        self,
+        procedure: Callable,
+        user_settings: WampifySettings
+    ) -> None:
+        self.settings = user_settings
+        self.endpoint = FactoryEndpoint(procedure)
 
     async def _release(
         self
     ) -> None:
         """
         """
+        self.story = create_story()
         self.story.session_pool = SessionPool(self.settings.session_pool.factories)
         self.story.background_tasks = BackgroundTasks()
 
@@ -39,29 +49,16 @@ class FactoryEntrypoint:
         await self.story.session_pool.close_released()
 
     async def execute(
-        self,
-        A,
-        K,
-        D
-    ) -> Any: ...
-
-    def _raise_handled_error(
-        self,
-        e: BaseError
-    ) -> None:
-        """
-        """
-        if self.settings.debug:
-            raise e
+        self
+    ) -> Any:
+        await self._release()
         try:
-            e.__init__()
-            name = f'{self.settings.wamp.domain}.error.{e.name}'
-            payload = e.to_primitive()
-        except:
-            e = SomethingWentWrong()
-            name = f'{self.settings.wamp.domain}.error.{e.name}'
-            payload = e.to_primitive()
-        raise ApplicationError(error=name, payload=payload)
+            output = await self.endpoint()
+            await self._close_released()
+            return output
+        except BaseError as e:
+            await self._raise_released()
+            raise e
 
     async def __call__(
         self,
@@ -74,30 +71,13 @@ class SystemEntrypoint(FactoryEntrypoint):
     """
     """
 
-    endpoint: SystemEndpoint
-
     def __init__(
         self,
         procedure: Callable,
         user_settings: WampifySettings
     ) -> None:
         self.settings = user_settings
-        self.endpoint = SystemEndpoint(
-            procedure=procedure
-        )
-
-    async def execute(
-        self
-    ) -> Any:
-        self.story = create_story()
-        await self._release()
-        try:
-            output = await self.endpoint()
-            await self._close_released()
-            return output
-        except BaseError as e:
-            await self._raise_released()
-            self._raise_handled_error(e)
+        self.endpoint = SystemEndpoint(procedure)
 
 
 class SharedEntrypoint(FactoryEntrypoint):
@@ -169,10 +149,9 @@ class SharedEntrypoint(FactoryEntrypoint):
         K,
         D
     ) -> Any:
-        self.story = create_story()
+        await self._release()
         request = self._create_request(A, K, D)
         self.story.client = request.client
-        await self._release()
         try:
             output = await self.middleware(request)
             await self._close_released()
@@ -187,6 +166,24 @@ class SharedEntrypoint(FactoryEntrypoint):
         K,
         D
     ) -> BaseRequest: ...
+
+    def _raise_handled_error(
+        self,
+        e: BaseError
+    ) -> None:
+        """
+        """
+        if self.settings.debug:
+            raise e
+        try:
+            e.__init__()
+            name = f'{self.settings.wamp.domain}.error.{e.name}'
+            payload = e.to_primitive()
+        except:
+            e = SomethingWentWrong()
+            name = f'{self.settings.wamp.domain}.error.{e.name}'
+            payload = e.to_primitive()
+        raise ApplicationError(error=name, payload=payload)
 
 
 class CallEntrypoint(SharedEntrypoint):
@@ -241,5 +238,4 @@ class PublishEntrypoint(SharedEntrypoint):
         """
         """
         return PublishRequest(A, K, D)
-
 

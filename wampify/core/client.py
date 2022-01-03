@@ -19,3 +19,4 @@ class Client:
         self.i = i
         self.role = role
         self.session_i = session_i
+
