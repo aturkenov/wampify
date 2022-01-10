@@ -4,7 +4,7 @@ from wampify.core.error import AuthenticationFailed
 
 wampify = Wampify(
     settings={
-        'debug': True,
+        'debug': False,
         'wamp': {
             'domain': 'com.example',
             'url': 'ws://127.0.0.1:8080/private',
@@ -18,22 +18,22 @@ wampify = Wampify(
 
 
 AVAILABLE_USERS = {
-    'ivan:secret'
+    'Ivan:secret'
 }
 
 DEFAULT_USER_ROLE = 'public'
 
-@wampify.register('authentication')
-def login(realm, authid, details):
+@wampify.register
+def authentication(realm, authid, details):
     """
     WAMP Dynamic Ticket Authentication
     https://crossbar.io/docs/Ticket-Authentication/
     """
     print(f'WAMP Dynamic Ticket Authentication: {authid}')
-    
+
     if details['authmethod'] != 'ticket':
         raise AuthenticationFailed('Unsupported authentication')
-    
+
     if not f'{authid}:{details["ticket"]}' in AVAILABLE_USERS:
         raise AuthenticationFailed('Could not authenticate session - invalid ticket')
 
@@ -42,3 +42,4 @@ def login(realm, authid, details):
 
 if __name__ == '__main__':
     wampify.run()
+

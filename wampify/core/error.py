@@ -94,3 +94,8 @@ class MiddlewareNotBoundError(SomethingWentWrong):
     500
     """
 
+
+class FactoryDoesNotExist(SomethingWentWrong):
+    """
+    """
+

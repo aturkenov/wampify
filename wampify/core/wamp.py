@@ -152,7 +152,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
             if self._settings.show_registered:
                 print(f'{I} was subscribed')
 
-        await self._cart.fire('session_joined')
+        await self._cart.fire('wamp_session_joined')
 
     async def onLeave(
         self,
@@ -162,7 +162,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
         """
         self.disconnect()
  
-        await self._cart.fire('session_leaved')
+        await self._cart.fire('wamp_session_leaved')
 
     async def onDisconnect(
         self
@@ -204,15 +204,15 @@ class WAMPBackend:
 
     def run(
         self,
-        url: str = None,
+        router_url: str = None,
         start_loop = None
     ):
         """
         """
-        if url is None:
-            url = self.settings.url
-        assert type(url) == str, 'URL is required'
-        runner = AsyncioApplicationRunner(url)
+        if router_url is None:
+            router_url = self.settings.router_url
+        assert type(router_url) == str, 'URL is required'
+        runner = AsyncioApplicationRunner(router_url)
         if start_loop is None:
             start_loop = self.settings.start_loop
         return runner.run(self._create_session, start_loop=start_loop)

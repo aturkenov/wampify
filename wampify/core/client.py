@@ -3,12 +3,16 @@ from typing import *
 
 class Client:
     """
-    Represents
+    Represents a requested client (wamp session)
+
+    - `i` - session authid 
+    - `role` - session role
+    - `session_i` - session number
     """
 
-    i: Any
-    role: str
-    session_i: Any
+    i: Any # session authid 
+    role: str # session role
+    session_i: Any # session identificator
 
     def __init__(
         self,

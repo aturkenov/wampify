@@ -1,6 +1,3 @@
-import sys
-sys.path.append('../..')
-sys.path.append('../../wampify')
 from wampify.core.wampify import Wampify
 
 
@@ -20,21 +17,16 @@ wampify = Wampify(
 )
 
 
-@wampify.on_signal('session_joined')
-async def joined():
+@wampify.on
+async def wamp_session_joined():
     print('Session was joined!') 
 
 
-# wampify.add_signal('session_joined', joined)
-
-
-@wampify.on_signal('session_leaved')
-def leaved():
+@wampify.on
+def wamp_session_leaved():
     print('Session was leaved!') 
-
-
-# wampify.add_signal('session_leaved', leaved)
 
 
 if __name__ == '__main__':
     wampify.run()
+

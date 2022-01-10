@@ -2,10 +2,8 @@ from typing import *
 
 
 class BackgroundTasks:
-    """
-    """
 
-    _T: List
+    _T: List[Tuple[Callable, Iterable, Mapping]]
  
     def __init__(
         self
@@ -15,11 +13,16 @@ class BackgroundTasks:
     def add(
         self,
         task: Union[Awaitable, Callable],
-        *A,
-        **K
+        *A: Iterable,
+        **K: Mapping
     ) -> None:
         """
         """
         _ = task, A, K
         self._T.append(_)
+
+    def get_list(
+        self
+    ) -> List[Tuple[Callable, Iterable, Mapping]]:
+        return self._T
 

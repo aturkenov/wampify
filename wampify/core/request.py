@@ -1,10 +1,16 @@
-from .client import *
+from .client import Client
 from autobahn.wamp import CallDetails, EventDetails
-from typing import *
+from typing import Any, Iterable, Mapping
 
 
 class BaseRequest:
     """
+    Represents a base request
+
+    - `A` - requested arguments
+    - `K` - requested keyword arguments
+    - `D` - request details
+    - `client` - requested client (wamp session)
     """
 
     A: Iterable[Any]
@@ -25,9 +31,10 @@ class BaseRequest:
 
 class CallRequest(BaseRequest):
     """
+    Represents a call request
     """
 
-    D: CallDetails 
+    D: CallDetails
 
     def __init__(
         self,
@@ -46,6 +53,7 @@ class CallRequest(BaseRequest):
 
 class PublishRequest(BaseRequest):
     """
+    Represents a publish request
     """
 
     D: EventDetails

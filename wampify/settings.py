@@ -35,8 +35,9 @@ class WampifySessionSettings(BaseModel):
 class WAMPBackendSettings(BaseModel):
     """
     """
+    # TODO rename domain to URI_prefix
     domain: str = None
-    url: str = None
+    router_url: str = None
     start_loop = True
     session: WampifySessionSettings
 

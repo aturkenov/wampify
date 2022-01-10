@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 import orjson as json
-from typing import *
+from typing import Any
 
 
 PRIMITIVES = (

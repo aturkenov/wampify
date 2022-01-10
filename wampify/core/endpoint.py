@@ -3,11 +3,12 @@ from inspect import iscoroutinefunction as is_async
 from pydantic import ValidationError
 from pydantic.decorator import ValidatedFunction
 from shared.serializer import *
-from typing import *
+from typing import Callable, Iterable, Mapping
 
 
-class FactoryEndpoint:
+class Endpoint:
     """
+    Endpoint last point to execute your procedure
     """
 
     _procedure: Callable
@@ -42,17 +43,12 @@ class FactoryEndpoint:
         return await self.execute(*A, **K)
 
 
-class SystemEndpoint(FactoryEndpoint):
-    """
-    """
-
-
-class SharedEndpoint(FactoryEndpoint):
+class SharedEndpoint(Endpoint):
     """
     """
 
     _validate_payload: bool
-    _pmodel: ValidatedFunction
+    _validated_function: ValidatedFunction
     _serializers: Iterable[Callable]
 
     def __init__(
@@ -62,7 +58,7 @@ class SharedEndpoint(FactoryEndpoint):
         serializers: Iterable[Callable] = DEFAULT_SERIALIZERS
     ):
         super().__init__(procedure)
-        self._pmodel = ValidatedFunction(procedure, None)
+        self._validated_function = ValidatedFunction(procedure, None)
         self._validate_payload = validate_payload
         self._serializers = serializers
  
@@ -77,19 +73,20 @@ class SharedEndpoint(FactoryEndpoint):
         """
         Validates input data, otherwise raises `PayloadValidationError`
         """
-        values = self._pmodel.build_values(A, K)
+        values = self._validated_function.build_values(A, K)
 
         if not self._validate_payload:
             return values
 
         try:
-            self._pmodel.model(**values)
+            payload = self._validated_function.model(**values)
         except ValidationError as e:
             raise PayloadValidationError(
                 cause=self._get_pydantic_validation_error_content(e)
             )
-
-        return values
+        else:
+            required_arguments = values.keys()
+            return payload.dict(include=required_arguments)
 
     def _serialize(
         self,
@@ -127,12 +124,8 @@ class SharedEndpoint(FactoryEndpoint):
         return self._serialize(output)
 
 
-class RegisterEndpoint(SharedEndpoint):
-    """
-    """
+class RegisterEndpoint(SharedEndpoint): ...
 
 
-class SubscribeEndpoint(SharedEndpoint):
-    """
-    """
+class SubscribeEndpoint(SharedEndpoint): ...
 

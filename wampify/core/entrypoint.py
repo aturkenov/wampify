@@ -5,86 +5,61 @@ from .session_pool import *
 from .background_task import *
 from .middleware import *
 from settings import *
-from autobahn.wamp.exception import *
-from typing import *
+import asyncio
+from multiprocessing import Process
+from autobahn.wamp.exception import ApplicationError
 
 
-class FactoryEntrypoint:
+class Entrypoint:
     """
+    Entrypoint creates story, execute required resources and endpoint.
+    If something went wrong, raise released resources and handles exception
+    else returns output and close released resources
+
+    - `procedure`
+    - `user_settings`
     """
 
-    endpoint: SystemEndpoint
-    story: Story
-    settings: WampifySettings
+    _story: Story
+    _endpoint: Endpoint 
+    _settings: WampifySettings
 
     def __init__(
         self,
         procedure: Callable,
         user_settings: WampifySettings
     ) -> None:
-        self.settings = user_settings
-        self.endpoint = FactoryEndpoint(procedure)
-
-    async def _release(
-        self
-    ) -> None:
-        """
-        """
-        self.story = create_story()
-        self.story.session_pool = SessionPool(self.settings.session_pool.factories)
-        self.story.background_tasks = BackgroundTasks()
-
-    async def _raise_released(
-        self
-    ) -> None:
-        """
-        """
-        await self.story.session_pool.raise_released()
-
-    async def _close_released(
-        self
-    ) -> None:
-        """
-        """
-        await self.story.session_pool.close_released()
+        self._endpoint = Endpoint(procedure)
+        self._settings = user_settings
 
     async def execute(
-        self
+        self,
+        A = [],
+        K = {},
+        D = None
     ) -> Any:
-        await self._release()
+        self._story = create_story()
+        self._story.session_pool = SessionPool(self._settings.session_pool.factories)
         try:
-            output = await self.endpoint()
-            await self._close_released()
+            output = await self._endpoint(*A, **K)
+        except BaseException as E:
+            await self._story.session_pool.raise_released()
+            raise E
+        else:
+            await self._story.session_pool.close_released()
             return output
-        except BaseError as e:
-            await self._raise_released()
-            raise e
 
     async def __call__(
         self,
         *A,
+        **K
     ) -> Any:
-        return await self.execute(*A)
+        return await self.execute(*A, **K)
 
 
-class SystemEntrypoint(FactoryEntrypoint):
-    """
-    """
+class SharedEntrypoint(Entrypoint):
 
-    def __init__(
-        self,
-        procedure: Callable,
-        user_settings: WampifySettings
-    ) -> None:
-        self.settings = user_settings
-        self.endpoint = SystemEndpoint(procedure)
-
-
-class SharedEntrypoint(FactoryEntrypoint):
-    """
-    """
-
-    middleware: BaseMiddleware
+    _middleware: BaseMiddleware
 
     def __init__(
         self,
@@ -94,47 +69,52 @@ class SharedEntrypoint(FactoryEntrypoint):
         user_middlewares: List[BaseMiddleware],
         user_serializers: List[Callable],
     ):
-        self.settings = user_settings
-        self.endpoint = self._create_endpoint(
-            procedure=procedure,
-            endpoint_settings=endpoint_settings,
-            user_serilizers=user_serializers
+        self._settings = user_settings
+        self._endpoint = self._create_endpoint(
+            procedure, endpoint_settings, user_serializers
         )
-        async def endpoint_as_middleware(request: BaseRequest):
-            return await self.endpoint(*request.A, **request.K)
-        self.middleware = self._build_responsibility_chain([
-            *user_middlewares, endpoint_as_middleware
-        ])
+        self._build_responsibility_chain(
+            user_middlewares, self._endpoint
+        )
 
     def _build_responsibility_chain(
         self,
-        M: List[Union[BaseMiddleware, SharedEndpoint]],
+        middlewares: List[BaseMiddleware],
+        endpoint: SharedEndpoint,
         settings: Mapping = None
     ) -> BaseMiddleware:
         """
-        Builds chain of responsibility
+        Build chain of responsibility from passed middlewares
+        Also converts endpoint to executable middleware
+        and append it to chain
         """
-        assert isinstance(M, list), 'Must be list of middlewares'
-        assert len(M) > 0, 'Must be more than zero middlewares'
+        assert isinstance(middlewares, list), 'Must be list of middlewares'
 
-        endpoint = M.pop()
+        self._middleware, it = None, None
+        for m in middlewares:
+            m = m(settings)
 
-        first, i = None, None
-        for m in M:
-            m = m.__init__(settings)
-
-            if first is None and i is None:
-                first, i = m, m
+            if self._middleware is None and it is None:
+                self._middleware, it = m, m
                 continue
 
-            i.set_next(m)
-            i = m
+            it.set_next(m)
+            it = m
 
-        if i is None:
-            return endpoint
+        class EndpointAsMiddleware(BaseMiddleware):
 
-        i.set_next(endpoint)
-        return first
+            async def handle(
+                self,
+                request: BaseRequest
+            ) -> Any:
+                return await endpoint(*request.A, **request.K)
+
+        endpoint_as_middleware = EndpointAsMiddleware()
+
+        if it is None:
+            self._middleware = endpoint_as_middleware
+        else:
+            it.set_next(endpoint_as_middleware)
 
     def _create_endpoint(
         self,
@@ -143,22 +123,60 @@ class SharedEntrypoint(FactoryEntrypoint):
         user_serilizers: List[Callable]
     ) -> SharedEndpoint: ...
 
+    async def _execute_background_tasks(
+        self
+    ) -> None:
+        """
+        If queue not empty, execute background tasks, 
+        in another process and new asyncio event loop
+        """
+        background_tasks = self._story.background_tasks.get_list()
+
+        def in_another_process():
+            loop = asyncio.new_event_loop()
+            for p, a, k in background_tasks:
+                entrypoint = Entrypoint(p, self._settings)
+                loop.run_until_complete(entrypoint(*a, **k))
+
+        if len(background_tasks) == 0:
+            return
+
+        p = Process(target=in_another_process)
+        p.start()
+
     async def execute(
         self,
-        A,
-        K,
-        D
+        A = [],
+        K = {},
+        D = None
     ) -> Any:
-        await self._release()
-        request = self._create_request(A, K, D)
-        self.story.client = request.client
+        self._story = create_story()
+        self._request = self._create_request(A, K, D)
+        self._story.session_pool = SessionPool(
+            self._settings.session_pool.factories
+        )
+        self._story.background_tasks = BackgroundTasks()
+        self._story.client = self._request.client
         try:
-            output = await self.middleware(request)
-            await self._close_released()
+            output = await self._middleware(self._request)
+        except BaseException as e:
+            await self._story.session_pool.raise_released()
+ 
+            if self._settings.debug:
+                raise e
+            try:
+                e.__init__()
+                name = f'{self._settings.wamp.domain}.error.{e.name}'
+                payload = e.to_primitive()
+            except:
+                e = SomethingWentWrong()
+                name = f'{self._settings.wamp.domain}.error.{e.name}'
+                payload = e.to_primitive()
+            raise ApplicationError(error=name, payload=payload)
+        else:
+            await self._execute_background_tasks()
+            await self._story.session_pool.close_released()
             return output
-        except BaseError as e:
-            await self._raise_released()
-            self._raise_handled_error(e)
 
     def _create_request(
         self,
@@ -167,28 +185,8 @@ class SharedEntrypoint(FactoryEntrypoint):
         D
     ) -> BaseRequest: ...
 
-    def _raise_handled_error(
-        self,
-        e: BaseError
-    ) -> None:
-        """
-        """
-        if self.settings.debug:
-            raise e
-        try:
-            e.__init__()
-            name = f'{self.settings.wamp.domain}.error.{e.name}'
-            payload = e.to_primitive()
-        except:
-            e = SomethingWentWrong()
-            name = f'{self.settings.wamp.domain}.error.{e.name}'
-            payload = e.to_primitive()
-        raise ApplicationError(error=name, payload=payload)
-
 
 class CallEntrypoint(SharedEntrypoint):
-    """
-    """
 
     def _create_endpoint(
         self,
@@ -197,9 +195,7 @@ class CallEntrypoint(SharedEntrypoint):
         user_serilizers: List[Callable]
     ) -> RegisterEndpoint:
         return RegisterEndpoint(
-            procedure=procedure,
-            validate_payload=endpoint_settings.validate_payload,
-            serializers=user_serilizers
+            procedure, endpoint_settings.validate_payload, user_serilizers
         )
 
     def _create_request(
@@ -214,8 +210,6 @@ class CallEntrypoint(SharedEntrypoint):
 
 
 class PublishEntrypoint(SharedEntrypoint):
-    """
-    """
 
     def _create_endpoint(
         self,
@@ -224,9 +218,7 @@ class PublishEntrypoint(SharedEntrypoint):
         user_serilizers: List[Callable]
     ) -> SubscribeEndpoint:
         return SubscribeEndpoint(
-            procedure=procedure,
-            validate_payload=endpoint_settings.validate_payload,
-            serializers=user_serilizers
+            procedure, endpoint_settings.validate_payload, user_serilizers
         )
 
     def _create_request(

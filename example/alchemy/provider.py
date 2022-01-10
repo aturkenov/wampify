@@ -12,7 +12,7 @@ class BaseAlchemyProvider(BaseProvider):
 
     _session: AsyncSession
 
-    async def __ainit__(
+    async def __aini__(
         self
     ):
         self._session = await self._story.session_pool.release('alchemy')
@@ -22,7 +22,7 @@ class BaseAlchemyModelProvider(BaseAlchemyProvider):
     """
     """
 
-    _table: Table
+    _table_: Table
 
     _select_stmt: Select
     _select_count_stmt: Select
@@ -40,10 +40,10 @@ class BaseAlchemyModelProvider(BaseAlchemyProvider):
         """
 
 
-    async def __ainit__(
+    async def __aini__(
         self
     ):
-        await super().__ainit__()
+        await super().__aini__()
         self._filters = self.Filters()
 
 
@@ -113,7 +113,7 @@ class BaseAlchemyModelProvider(BaseAlchemyProvider):
         stmt = stmt.returning(self._insert_returning_stmt)
         return await self._session.scalar(stmt)
 
-    async def _do_bulk_insert(
+    async def _do_bulksert(
         self,
         *values: Iterable[Mapping]
     ):
@@ -195,19 +195,19 @@ class BaseAlchemyModelProvider(BaseAlchemyProvider):
         """
         return await self._do_insert(values=values)
 
-    async def get_or_insert(
+    async def getsert(
         self,
         filters: Mapping,
         **values: Mapping
     ): ...
 
-    async def bulk_insert(
+    async def bulksert(
         self,
         *values: Iterable[Mapping]
     ):
         """
         """
-        return await self._do_bulk_insert(*values)
+        return await self._do_bulksert(*values)
 
     async def update(
         self,

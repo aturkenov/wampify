@@ -1,16 +1,25 @@
-class BaseSessionFactory:
+from typing import Any
+
+
+class ISessionFactory:
     """
+    SessionFactory is interface
+    represents unit of session (AlchemySession, RedisConnection, etc...)
+    Go to example/ directory
     """
 
-    async def on_release(self):
+    async def on_release(self) -> Any:
         """
-        """
-
-    async def on_raise(self):
-        """
+        If session was requested by user
         """
 
-    async def on_close(self):
+    async def on_raise(self) -> None:
         """
+        If something went wrong
+        """
+
+    async def on_close(self) -> None:
+        """
+        Closes
         """
 
