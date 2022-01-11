@@ -1,23 +1,30 @@
 # Wampify - WAMP framework
 
-&Web Application Messaging Protocol (WAMP) built under the hood on &WebSocket protocol, so each session has permenent connection with router, сответственно with WAMP you can create and build &decentrialized, &independent and &scalable network of &microservices.
+[Web Application Messaging Protocol (WAMP)](https://wamp-proto.org/intro.html) is an open standard WebSocket subprotocol that provides two messaging patterns in one Web native protocol:
+
+- [routed Remote Procedure Calls (RPC)](https://github.com/aturkenov/wampify#remote-procedure-call-rpc)
+- [Publish & Subscribe (PubSub)](https://github.com/aturkenov/wampify#publish--subscribe-pubsub)
+
+The [WebSocket protocol](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) brings bi-directional (soft) real-time and wire traffic efficient connections to the browser. Today (2022) WebSocket is universally supported in browsers, network equipment, servers and client languages.
+
+Using WAMP you can build distributed systems which are loosely coupled and communicate in (soft) real-time.
 
 ## Features:
-- &High performance
-- &Remote Procedure Call (RPC) and &Publish & Subscribe (PubSub)
-- Payload validation based on &pydantic
-- &Serialization (default &binary orjson)
-- &Your custom middlewares
-- &Signals (WAMP session joined, WAMP session leaved, etc...)
-- &Background tasks
-- &Session pool (&SQLAlchemy, &Redis, etc...)
+- [High performance](https://github.com/aturkenov/wampify/tree/main/example/benchmark)
+- [Remote Procedure Calls (RPC)](https://github.com/aturkenov/wampify#remote-procedure-call-rpc) and [Publish & Subscribe (PubSub)](https://github.com/aturkenov/wampify#publish--subscribe-pubsub)
+- [Payload validation](https://pydantic-docs.helpmanual.io/usage/validation_decorator/) based on [pydantic](https://pydantic-docs.helpmanual.io)
+- [Session pool](https://github.com/aturkenov/wampify#session-pool) ([SQLAlchemy](https://www.sqlalchemy.org), [Redis](https://redis.io), etc...)
+- [Serialization](https://github.com/aturkenov/wampify#serialization) (default [binary orjson](https://github.com/ijl/orjson))
+- [Signals (WAMP session joined, WAMP session leaved, etc...)](https://github.com/aturkenov/wampify#signals)
+- [Background tasks](https://github.com/aturkenov/wampify#backgroud-tasks)
+- [Custom middlewares](https://github.com/aturkenov/wampify#custom-middlewares)
 - Source code is well documented
 
 # Introduction
 
-`INFO!` Full source code in &example/basic/ directory. More examples &here (a.py is server side and b.py is client side).
+`INFO!` Full source code in [example/basic/ directory](https://github.com/aturkenov/wampify/tree/main/example/basic). More examples [here](https://github.com/aturkenov/wampify/tree/main/example) (`a.py` is server side and `b.py` is client side).
 
-Before install, configure and run your WAMP router. I'm recomending to use &Crossbar router
+Before install, configure and run your [WAMP router](https://wamp-proto.org/implementations.html#routers). I'm recomending to use [Crossbar router](https://crossbar.io)
 
 ```bash
 pip install crossbar
@@ -61,6 +68,8 @@ TODO! Here must be about wamp authentication
 
 ## Remote Procedure Call (RPC)
 
+(https://wamp-proto.org/faq.html#what-is-rpc)
+
 By default Wampify validates input payload if type annotations are defined and takes procedure name as URI segment
 
 It will executes when someone call `com.example.pow`
@@ -84,6 +93,8 @@ Change to another URI
 ```
 
 ## Publish & Subscribe (PubSub)
+
+(https://wamp-proto.org/faq.html#what-is-pubsub)
 
 It will executes when someone publish something to `com.example.hello`
 
@@ -122,9 +133,19 @@ async def hello(name: str = 'Anonymous'):
     print(f'{name} you are welcome!') 
 ```
 
+## Session pool
+
+Describe about session factory interface and how it works
+
+## Serialization
+
+Describe how it works and that's all
+
 ## Backgroud Tasks
 
 Main process executes child process when background tasks pushed to queue.
+
+Describe, how to connect another session
 
 ```python
 from wampify.core.story import *
@@ -140,6 +161,8 @@ async def hello(name: str = 'Anonymous'):
 
 ## Signals
 
+Describe more about custom signals and firing
+
 ```python
 @wampify.on
 async def wamp_session_joined(): ...
@@ -148,15 +171,17 @@ async def wamp_session_joined(): ...
 async def wamp_session_leaved(): ...
 ```
 
+## Custom Middlewares
+
+Describe how you can use it
+
 # TODO:
 
 - Unit tests
 - Better payload validation for subscriptions and pattern matching
-- Independent signals
-- Improved wamp session (user-friendly)
 - Wampify serializer
 - Background tasks must have wamp session
-- Subscription whitelisting and blacklisting
+- Subscription white/black listing
 - Progressive calls
 - In Memory Cache
 - Uvloop support
@@ -166,4 +191,11 @@ async def wamp_session_leaved(): ...
 
 # Contribution
 
-Aidar spend time to me pls!
+https://stackoverflow.com/users/13774052/aidar-turkenov
+
+https://stackoverflow.com/questions/tagged/wamp
+https://stackoverflow.com/questions/tagged/wampify
+
+https://github.com/aturkenov/wampify/issues
+
+a.k.turken0v@gmail.com

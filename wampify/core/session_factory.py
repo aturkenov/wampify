@@ -3,7 +3,7 @@ from typing import Any
 
 class ISessionFactory:
     """
-    SessionFactory is interface
+    Session Factory Interface
     represents unit of session (AlchemySession, RedisConnection, etc...)
     Go to example/ directory
     """
