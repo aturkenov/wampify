@@ -1,5 +1,7 @@
 # Wampify - WAMP framework
 
+![license](https://img.shields.io/github/license/aturkenov/wampify)
+
 [Web Application Messaging Protocol (WAMP)](https://wamp-proto.org/intro.html) is an open standard WebSocket subprotocol that provides two messaging patterns in one Web native protocol:
 
 - [routed Remote Procedure Calls (RPC)](https://github.com/aturkenov/wampify#remote-procedure-call-rpc)
@@ -8,6 +10,8 @@
 The [WebSocket protocol](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) brings bi-directional (soft) real-time and wire traffic efficient connections to the browser. Today (2022) WebSocket is universally supported in browsers, network equipment, servers and client languages.
 
 Using WAMP you can build distributed systems which are loosely coupled and communicate in (soft) real-time.
+
+Wampify built on top of [autobahn library](https://autobahn.readthedocs.io/en/latest/index.html)
 
 ## Features:
 - [High performance](https://github.com/aturkenov/wampify/tree/main/example/benchmark)
@@ -22,7 +26,7 @@ Using WAMP you can build distributed systems which are loosely coupled and commu
 
 # Introduction
 
-`INFO!` Full source code in [example/basic/ directory](https://github.com/aturkenov/wampify/tree/main/example/basic). More examples [here](https://github.com/aturkenov/wampify/tree/main/example) (`a.py` is server side and `b.py` is client side).
+`INFO!` Full source code in [example/basic/ directory](https://github.com/aturkenov/wampify/tree/main/example/basic) (`a.py` is server side and `b.py` is client side). More examples [here](https://github.com/aturkenov/wampify/tree/main/example).
 
 Before install, configure and run your [WAMP router](https://wamp-proto.org/implementations.html#routers). I'm recomending to use [Crossbar router](https://crossbar.io)
 
@@ -127,7 +131,7 @@ from wampify.core.story import *
 @wampify.subscribe
 async def hello(name: str = 'Anonymous'):
     story = get_current_story()
-    story.wamp_session.call(
+    story.wamp.call(
         'com.another_microservice.increment_clients_counter'
     )
     print(f'{name} you are welcome!') 
@@ -175,6 +179,10 @@ async def wamp_session_leaved(): ...
 
 Describe how you can use it
 
+# Benchmarks
+
+
+
 # TODO:
 
 - Unit tests
@@ -196,6 +204,7 @@ https://stackoverflow.com/users/13774052/aidar-turkenov
 https://stackoverflow.com/questions/tagged/wamp
 https://stackoverflow.com/questions/tagged/wampify
 
+https://github.com/aturkenov/wampify/discussions
 https://github.com/aturkenov/wampify/issues
 
 a.k.turken0v@gmail.com
