@@ -124,6 +124,8 @@ async def hello(name: str = 'Anonymous'):
 
 ## Backgroud Tasks
 
+Main process executes child process when background tasks pushed to queue.
+
 ```python
 from wampify.core.story import *
 

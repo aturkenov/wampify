@@ -10,7 +10,7 @@ class BaseSettings(BaseModel):
         extra = Extra.allow
 
 
-class EndpointSettings(BaseModel):
+class EndpointOptions(BaseModel):
     """
     """
     validate_payload = True
@@ -32,16 +32,6 @@ class WampifySessionSettings(BaseModel):
     show_subscribed = False
 
 
-class WAMPBackendSettings(BaseModel):
-    """
-    """
-    # TODO rename domain to URI_prefix
-    domain: str = None
-    router_url: str = None
-    start_loop = True
-    session: WampifySessionSettings
-
-
 class SessionPoolSettings(BaseModel):
     """
     """
@@ -52,7 +42,10 @@ class WampifySettings(BaseModel):
     """
     """
     debug = False
-    wamp: WAMPBackendSettings
+    uri_prefix: str = None
+    router_url: str = None
+    start_loop = True
+    wamp_session: WampifySessionSettings
     session_pool: SessionPoolSettings = SessionPoolSettings()
 
 
@@ -64,19 +57,15 @@ def get_validated_settings(data: Mapping) -> WampifySettings:
 
     class _WampifySessionSettings(WampifySessionSettings):
         ...
-        # FIXME
-        # factory: WampifySession = WampifySession
-
-    class _WAMPBackendSettings(WAMPBackendSettings):
-        session: _WampifySessionSettings
+        # FIXME factory: WampifySession = WampifySession
 
     class _WampifySettings(WampifySettings):
-        wamp: _WAMPBackendSettings
+        wamp_session: _WampifySessionSettings
 
     settings = _WampifySettings(**data)
 
-    if settings.wamp.session.factory is None:
-        settings.wamp.session.factory = AsyncioWampifySession
+    if settings.wamp_session.factory is None:
+        settings.wamp_session.factory = AsyncioWampifySession
 
     return settings
 

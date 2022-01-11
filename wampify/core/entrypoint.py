@@ -7,6 +7,7 @@ from .middleware import *
 from settings import *
 import asyncio
 from multiprocessing import Process
+from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError
 
 
@@ -23,14 +24,17 @@ class Entrypoint:
     _story: Story
     _endpoint: Endpoint 
     _settings: WampifySettings
+    _wamps: WAMPIS
 
     def __init__(
         self,
         procedure: Callable,
-        user_settings: WampifySettings
+        user_settings: WampifySettings,
+        wamps: WAMPIS,
     ) -> None:
         self._endpoint = Endpoint(procedure)
         self._settings = user_settings
+        self._wamps = wamps
 
     async def execute(
         self,
@@ -39,7 +43,10 @@ class Entrypoint:
         D = None
     ) -> Any:
         self._story = create_story()
-        self._story.session_pool = SessionPool(self._settings.session_pool.factories)
+        self._story.wamps = self._wamps
+        self._story.session_pool = SessionPool(
+            self._settings.session_pool.factories
+        )
         try:
             output = await self._endpoint(*A, **K)
         except BaseException as E:
@@ -64,12 +71,14 @@ class SharedEntrypoint(Entrypoint):
     def __init__(
         self,
         procedure: Callable,
-        endpoint_settings: EndpointSettings,
+        endpoint_settings: EndpointOptions,
+        wamps: WAMPIS,
         user_settings: WampifySettings,
         user_middlewares: List[BaseMiddleware],
         user_serializers: List[Callable],
     ):
         self._settings = user_settings
+        self._wamps = wamps
         self._endpoint = self._create_endpoint(
             procedure, endpoint_settings, user_serializers
         )
@@ -119,7 +128,7 @@ class SharedEntrypoint(Entrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_settings: EndpointSettings,
+        endpoint_settings: EndpointOptions,
         user_serilizers: List[Callable]
     ) -> SharedEndpoint: ...
 
@@ -151,6 +160,7 @@ class SharedEntrypoint(Entrypoint):
         D = None
     ) -> Any:
         self._story = create_story()
+        self._story.wamps = self._wamps
         self._request = self._create_request(A, K, D)
         self._story.session_pool = SessionPool(
             self._settings.session_pool.factories
@@ -166,11 +176,11 @@ class SharedEntrypoint(Entrypoint):
                 raise e
             try:
                 e.__init__()
-                name = f'{self._settings.wamp.domain}.error.{e.name}'
+                name = f'{self._settings.uri_prefix}.error.{e.name}'
                 payload = e.to_primitive()
             except:
                 e = SomethingWentWrong()
-                name = f'{self._settings.wamp.domain}.error.{e.name}'
+                name = f'{self._settings.uri_prefix}.error.{e.name}'
                 payload = e.to_primitive()
             raise ApplicationError(error=name, payload=payload)
         else:
@@ -191,7 +201,7 @@ class CallEntrypoint(SharedEntrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_settings: EndpointSettings,
+        endpoint_settings: EndpointOptions,
         user_serilizers: List[Callable]
     ) -> RegisterEndpoint:
         return RegisterEndpoint(
@@ -214,7 +224,7 @@ class PublishEntrypoint(SharedEntrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_settings: EndpointSettings,
+        endpoint_settings: EndpointOptions,
         user_serilizers: List[Callable]
     ) -> SubscribeEndpoint:
         return SubscribeEndpoint(

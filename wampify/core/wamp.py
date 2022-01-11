@@ -1,41 +1,35 @@
-from settings import WAMPBackendSettings, WampifySessionSettings
-from autobahn.wamp import ISession
-from autobahn.asyncio.wamp import (
-        ApplicationSession as AsyncioApplicationSession,
-        ApplicationRunner as AsyncioApplicationRunner
-    )
+from .signal_manager import SignalManager
+from settings import WampifySessionSettings
+from autobahn.asyncio.wamp import ApplicationSession as AsyncioApplicationSession
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
 from typing import *
 
 
-class WAMPBShoppingCart:
+class WAMPShoppingCart:
     """
     """
 
-    _domain: Union[str, None]
+    _urip: Union[str, None]
     # register uri: procedure, options
     _R: List[Tuple[str, Callable, Mapping]]
     # subscribe uri: procedure, options
     _S: List[Tuple[str, Callable, Mapping]]
-    # signal name: (procedures, options)[]
-    _E: Dict[str, List[Tuple[Callable, Mapping]]]
 
     def __init__(
         self,
-        domain: str = None
+        uri_prefix: str = None
     ):
-        self._domain = domain
+        self.urip = uri_prefix
         self._R = []
         self._S = []
-        self._E = {}
 
     def _create_uri(
         self,
         path: str
     ) -> str:
-        if self._domain is None:
+        if self._urip is None:
             return path
-        return f"{self._domain}.{path}"
+        return f"{self._urip}.{path}"
 
     def add_register(
         self,
@@ -65,21 +59,6 @@ class WAMPBShoppingCart:
         I = self._create_uri(path)
         self._S.append((I, procedure, O))
 
-    def add_signal(
-        self,
-        name: str,
-        procedure: Callable,
-        settings: Mapping = {}
-    ):
-        """
-        Adds signal 
-        """
-        assert type(name) == str, 'signal name must be string'
-        assert callable(procedure), 'procedure must be Callable'
-        self._E.setdefault(name, [])
-        _ = procedure, settings
-        self._E[name].append(_)
-
     def get_registered(
         self
     ) -> List[Tuple[str, Callable, Mapping[str, Any]]]:
@@ -96,27 +75,14 @@ class WAMPBShoppingCart:
         """
         return self._S
 
-    def get_signals(
-        self,
-        name: str
-    ) -> List[Tuple[Callable, Mapping]]:
-        return self._E.get(name, [])
-
-    async def fire(
-        self,
-        name: str
-    ) -> None:
-        S = self.get_signals(name)
-        for procedure, options in S:
-            await procedure()
-
 
 class AsyncioWampifySession(AsyncioApplicationSession):
     """
     """
 
+    _cart: WAMPShoppingCart
+    _signal_manager: SignalManager
     _settings: WampifySessionSettings
-    _cart: WAMPBShoppingCart
 
     async def onConnect(
         self
@@ -140,19 +106,17 @@ class AsyncioWampifySession(AsyncioApplicationSession):
     ):
         """
         """
-        print('Session was joined')
-
         for I, F, O in self._cart.get_registered():
             await self.register(F, I, RegisterOptions(**O))
             if self._settings.show_registered:
-                print(f'{I} was registered')
+                print(f'{I} registered')
 
         for I, F, O in self._cart.get_subscribed():
             await self.subscribe(F, I, SubscribeOptions(**O))
             if self._settings.show_registered:
-                print(f'{I} was subscribed')
+                print(f'{I} subscribed')
 
-        await self._cart.fire('wamp_session_joined')
+        await self._signal_manager.fire('wamp_session_joined')
 
     async def onLeave(
         self,
@@ -161,59 +125,12 @@ class AsyncioWampifySession(AsyncioApplicationSession):
         """
         """
         self.disconnect()
- 
-        await self._cart.fire('wamp_session_leaved')
+
+        await self._signal_manager.fire('wamp_session_leaved')
 
     async def onDisconnect(
         self
     ):
         """
         """
-
-
-class WAMPBackend:
-    """
-    """
-
-    settings: WAMPBackendSettings
-    session: Union[ISession, None]
-    session_factory: ISession
-    _cart: WAMPBShoppingCart
-
-    def __init__(
-        self,
-        settings: WAMPBackendSettings
-    ):
-        self.session = None
-        self.settings = settings
-        self.session_factory = settings.session.factory
-        self.session_factory._settings = settings.session
-        self._cart = WAMPBShoppingCart(settings.domain)
-        self.session_factory._cart = self._cart
-
-    def _create_session(
-        self,
-        *A,
-        **K
-    ) -> ISession:
-        """
-        """
-        assert self.session is None
-        self.session = self.session_factory()
-        return self.session
-
-    def run(
-        self,
-        router_url: str = None,
-        start_loop = None
-    ):
-        """
-        """
-        if router_url is None:
-            router_url = self.settings.router_url
-        assert type(router_url) == str, 'URL is required'
-        runner = AsyncioApplicationRunner(router_url)
-        if start_loop is None:
-            start_loop = self.settings.start_loop
-        return runner.run(self._create_session, start_loop=start_loop)
 

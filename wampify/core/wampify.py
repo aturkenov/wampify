@@ -1,25 +1,43 @@
 from .wamp import *
 from .entrypoint import *
 from .middleware import *
+from .signal_manager import *
 from settings import *
+from autobahn.wamp import ISession as WAMPIS
+from autobahn.asyncio.wamp import ApplicationRunner as AsyncioApplicationRunner
 from typing import *
 
 
 class Wampify:
+    """
+    
+    >>> Wampify(
+    >>> 
+    >>> )
+    """
 
+    settings: WampifySettings
+    wamps_factory: WAMPIS
+    _wamps: Union[WAMPIS, None]
     _middlewares: List[BaseMiddleware]
     _serializers: List[Callable]
-    settings: WampifySettings
-    wamp: WAMPBackend
+    _cart: WAMPShoppingCart
+    _signal_manager: SignalManager
 
     def __init__(
         self,
         settings: Dict
     ) -> None:
+        self._wamps = None
         self._middlewares = []
         self._serializers = []
         self.settings = get_validated_settings(settings)
-        self.wamp = WAMPBackend(self.settings.wamp)
+        self.wamps_factory = self.settings.wamp_session.factory
+        self.wamps_factory._settings = self.settings.wamp_session
+        self._cart = WAMPShoppingCart(self.settings.uri_prefix)
+        self.wamps_factory._cart = self._cart
+        self._signal_manager = SignalManager()
+        self.wamps_factory._signal_manager = self._signal_manager
 
     def add_middleware(
         self,
@@ -47,24 +65,24 @@ class Wampify:
         self,
         path: str,
         procedure: Callable,
-        settings: Mapping = {}
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds register procedure
 
-        - `settings`: {
-            'validate_payload': boolean
-        }
+        - `options`: `EndpointOptions` (go to wampify/settings.py)
 
         Returns passed procedure
 
         >>> async def pow(x: float = 1):
         >>>     return x ** 2
+        >>>
         >>> wampify.add_register('pow', pow)
         """
         entrypoint = CallEntrypoint(
-            procedure, EndpointSettings(**settings),
-            self.settings, self._middlewares, self._serializers,
+            procedure, EndpointOptions(**options),
+            self._wamps, self.settings,
+            self._middlewares, self._serializers,
         )
 
         async def on_call(
@@ -74,7 +92,7 @@ class Wampify:
         ):
             return await entrypoint(A, K, _CALL_DETAILS_)
 
-        self.wamp._cart.add_register(
+        self._cart.add_register(
             path, on_call, {'details_arg': '_CALL_DETAILS_'}
         )
         return procedure
@@ -83,24 +101,24 @@ class Wampify:
         self,
         path: str,
         procedure: Callable,
-        settings: Mapping = {}
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds subscribe procedure
 
-        - `settings`: {
-            'validate_payload': boolean
-        }
+        - `options`: `EndpointOptions` (go to wampify/settings.py)
 
         Returns passed procedure
 
         >>> async def on_hello(name: str = 'Anonymous'):
         >>>     print(f'{name} said hello')
+        >>>
         >>> wampify.add_subscribe('hello', on_hello)
         """
         entrypoint = PublishEntrypoint(
-            procedure, EndpointSettings(**settings),
-            self.settings, self._middlewares, self._serializers,
+            procedure, EndpointOptions(**options),
+            self._wamps, self.settings,
+            self._middlewares, self._serializers,
         )
 
         async def on_publish(
@@ -110,7 +128,7 @@ class Wampify:
         ):
             return await entrypoint(A, K, _PUBLISH_DETAILS_)
 
-        self.wamp._cart.add_subscribe(
+        self._cart.add_subscribe(
             path, on_publish, {'details_arg': '_PUBLISH_DETAILS_'}
         )
         return procedure
@@ -119,12 +137,12 @@ class Wampify:
         self,
         name: str,
         procedure: Callable,
-        settings = {} 
+        options: Mapping
     ) -> Callable:
         """
         Adds signal ('wamp_session_joined', 'wamp_session_leaved', etc...)
 
-        - `settings`: {}
+        - `options`: `SignalOptions` (go to wampify/settings.py)
 
         Returns passed procedure
 
@@ -135,24 +153,22 @@ class Wampify:
         >>>     'wamp_session_leaved', on_wamp_session_leaved
         >>> )
         """
-        entrypoint = Entrypoint(procedure, self.settings)
-        self.wamp._cart.add_signal(name, entrypoint, settings)
+        entrypoint = Entrypoint(procedure, self._wamps)
+        self._signal_manager.add(name, entrypoint)
         return procedure
 
     def register(
         self,
         path_or_procedure: Union[str, Callable] = None,
         *,
-        settings: Mapping = {}
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds register procedure as decorator
 
-        If URI segment is not passed, then procedure name
+        Takes procedure name if URI segment is not passed
 
-        - `settings`: {
-            'validate_payload': boolean
-        }
+        - `options`: `EndpointOptions` (go to wampify/settings.py)
 
         Returns passed procedure
 
@@ -166,11 +182,11 @@ class Wampify:
             path = path_or_procedure
             if path_or_procedure is None:
                 path = procedure.__name__
-            return self.add_register(path, path_or_procedure, settings)
+            return self.add_register(path, path_or_procedure, options)
         if callable(path_or_procedure):
             procedure = path_or_procedure
             path = procedure.__name__
-            self.add_register(path, path_or_procedure, settings)
+            self.add_register(path, path_or_procedure, options)
             return procedure
         return decorate
 
@@ -178,16 +194,14 @@ class Wampify:
         self,
         path_or_procedure: Union[str, Callable] = None,
         *,
-        settings: Mapping = {}
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds subscribe procedure as decorator
 
-        If URI segment is not passed, then procedure name
+        Takes procedure name if URI segment is not passed
 
-        - `settings`: {
-            'validate_payload': boolean
-        }
+        - `options`: `EndpointOptions` (go to wampify/settings.py)
 
         Returns passed procedure
 
@@ -201,26 +215,27 @@ class Wampify:
             path = path_or_procedure
             if path_or_procedure is None:
                 path = procedure.__name__
-            return self.add_subscribe(path, path_or_procedure, settings)
+            return self.add_subscribe(path, path_or_procedure, options)
         if callable(path_or_procedure):
             procedure = path_or_procedure
             path = procedure.__name__
-            self.add_subscribe(path, path_or_procedure, settings)
+            self.add_subscribe(path, path_or_procedure, options)
             return procedure
         return decorate
 
     def on(
         self,
         signal_name_or_procedure: Union[str, Callable] = None,
-        settings: Mapping = {}
+        *,
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds signal ('wamp_session_joined', 'wamp_session_leaved',
         etc...) as decorator
 
-        If signal_name is not passed, then procedure name
+        Takes procedure name if signal_name is not passed
 
-        - `settings`: {}
+        - `options`: `SignalOptions` (go to wampify/settings.py)
 
         Returns passed procedure
 
@@ -234,11 +249,11 @@ class Wampify:
             signal_name = signal_name_or_procedure
             if signal_name is None:
                 signal_name = procedure.__name__
-            return self.add_signal(signal_name, procedure, settings)
+            return self.add_signal(signal_name, procedure, options)
         if callable(signal_name_or_procedure):
             procedure = signal_name_or_procedure
             signal_name = procedure.__name__
-            self.add_signal(signal_name, procedure, settings)
+            self.add_signal(signal_name, procedure, options)
             return procedure
         return decorate
 
@@ -246,14 +261,29 @@ class Wampify:
         self,
         router_url: str = None,
         start_loop = None
-    ) -> None:
+    ):
         """
-        Runs wamp session and if `start_loop` is passed, executes event loop
+        Runs WAMP session
+
+        if `start_loop` is passed, executes event loop
 
         - `router_url` - wamp router url
         - `start_loop` - executes event loop
 
         Returns: None
         """
-        self.wamp.run(router_url, start_loop)
+        def create_session(
+            *A,
+            **K
+        ) -> WAMPIS:
+            assert self._wamps is None
+            self._wamps = self.wamps_factory()
+            return self._wamps
+        if router_url is None:
+            router_url = self.settings.router_url
+        assert type(router_url) == str, 'URL is required'
+        runner = AsyncioApplicationRunner(router_url)
+        if start_loop is None:
+            start_loop = self.settings.start_loop
+        return runner.run(create_session, start_loop=start_loop)
 

@@ -1,6 +1,7 @@
 from .client import Client
 from .session_pool import SessionPool
 from .background_task import BackgroundTasks
+from autobahn.wamp import ISession as WAMPIS
 from contextvars import ContextVar
 
 
@@ -11,6 +12,7 @@ class Story:
 
     client: Client
     session_pool: SessionPool
+    wamps: WAMPIS
     background_tasks: BackgroundTasks
 
 
