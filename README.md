@@ -149,15 +149,45 @@ async def hello(name: str = 'Anonymous'):
 @wampify.on('_wamps_.joined')
 async def wamp_session_joined(): ...
 
-@wampify.on('_wamps_.joined')
+@wampify.on('_wamps_.leaved')
 async def wamp_session_leaved(): ...
 ```
 
 ## Custom Middlewares
 
 
-# Benchmarks
+## SQLAlchemy
 
+```python
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+engine = create_async_engine('postgresql+asyncpg://scott:tiger@localhost/test', echo=True)
+
+AlchemySession = sessionmaker(engine, AsyncSession)
+
+@wampify.on('_entrypoint_.opened', options={'is_endpoint': False})
+async def _(story):
+    story.alchemy = AlchemySession()
+    print('SQLAlchemy Async Session initialized')
+
+@wampify.on('_entrypoint_.raised', options={'is_endpoint': False})
+async def _(story, e):
+    await story.alchemy.rollback()
+    await story.alchemy.close()
+    print('SQLAlchemy Async Session rollback')
+
+@wampify.on('_entrypoint_.closed', options={'is_endpoint': False})
+async def _(story):
+    await story.alchemy.commit()
+    await story.alchemy.close()
+    print('SQLAlchemy Async Session closed')
+```
+
+## Redis
+
+# Benchmarks
 
 
 # TODO:
