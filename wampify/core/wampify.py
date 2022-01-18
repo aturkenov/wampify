@@ -32,12 +32,12 @@ class Wampify:
 
     def __init__(
         self,
-        settings: Mapping
+        **KW
     ) -> None:
         self._wamps = None
         self._middlewares = []
         self._serializers = []
-        self.settings = get_validated_settings(settings)
+        self.settings = get_validated_settings(**KW)
         self.wamps_factory = self.settings.wamp_session.factory
         self.wamps_factory._settings = self.settings.wamp_session
         self._cart = WAMPShoppingCart(self.settings.uri_prefix)
@@ -157,7 +157,7 @@ class Wampify:
         >>>     print("I'll be back!")
         >>>
         >>> wampify.add_signal(
-        >>>     'wamp_session_leaved', on_wamp_session_leaved
+        >>>     '_wamps_.leaved', on_wamp_session_leaved
         >>> )
         """
         endpoint_options = SignalOptions(**options)
@@ -252,7 +252,7 @@ class Wampify:
 
         Returns passed procedure
 
-        >>> @wampify.on
+        >>> @wampify.on('_wamps_.leaved')
         >>> async def wamp_session_leaved():
         >>>     print("I'll be back!")
         """

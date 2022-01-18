@@ -4,6 +4,7 @@ from typing import Any
 class BaseError(BaseException):
     """
     """
+
     _is_already_initialized: bool = False
 
     name = 'base'

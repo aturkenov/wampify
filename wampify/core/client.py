@@ -10,9 +10,9 @@ class Client:
     - `session_i` - session number
     """
 
-    i: Any # session authid 
-    role: str # session role
-    session_i: Any # session identificator
+    i: Any
+    role: str
+    session_i: Any
 
     def __init__(
         self,

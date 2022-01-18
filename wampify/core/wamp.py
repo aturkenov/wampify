@@ -116,7 +116,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
             if self._settings.show_registered:
                 print(f'{I} subscribed')
 
-        await self._signal_manager.fire('wamp_session_joined')
+        await self._signal_manager.fire('_wamps_.joined')
 
     async def onLeave(
         self,
@@ -126,7 +126,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
         """
         self.disconnect()
 
-        await self._signal_manager.fire('wamp_session_leaved')
+        await self._signal_manager.fire('_wamps_.leaved')
 
     async def onDisconnect(
         self

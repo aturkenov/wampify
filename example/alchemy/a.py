@@ -1,21 +1,15 @@
-import sys
-sys.path.append('../..')
-sys.path.append('../../wampify')
-
 from wampify.core.wampify import Wampify
 from wampify.core.story import *
 
 
 wampify = Wampify(
-    settings={
-        'debug': False,
-        'uri_prefix': 'com.example',
-        'router_url': 'ws://127.0.0.1:8080/private',
-        'wamp_session': {
-            'realm': 'example',
-            'show_registered': True,
-            'show_subscribed': True
-        }
+    debug=False,
+    uri_prefix='com.example',
+    router_url='ws://127.0.0.1:8080/private',
+    wamp_session={
+        'realm': 'example',
+        'show_registered': True,
+        'show_subscribed': True
     }
 )
 

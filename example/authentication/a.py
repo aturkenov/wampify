@@ -3,16 +3,14 @@ from wampify.core.error import AuthenticationFailed
 
 
 wampify = Wampify(
-    settings={
-        'debug': False,
-        'wamp': {
-            'domain': 'com.example',
-            'url': 'ws://127.0.0.1:8080/private',
-            'session': {
-                'realm': 'example',
-                'authmethods': ['anonymous']
-            }
-        }
+    debug=False,
+    uri_prefix='com.example',
+    router_url='ws://127.0.0.1:8080/private',
+    wamp_session={
+        'realm': 'example',
+        'authmethods': ['anonymous'],
+        'show_registered': True,
+        'show_subscribed': True
     }
 )
 

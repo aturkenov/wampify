@@ -10,7 +10,7 @@ from typing import Callable, Iterable, Mapping, Any
 
 class Endpoint:
     """
-    Endpoint last point to execute your procedure
+    Endpoint last point to execute procedure
     """
 
     _procedure: Callable

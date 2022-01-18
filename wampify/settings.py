@@ -49,7 +49,7 @@ class WampifySettings(BaseModel):
     wamp_session: WampifySessionSettings
 
 
-def get_validated_settings(data: Mapping) -> WampifySettings:
+def get_validated_settings(**KW) -> WampifySettings:
     """
     Returns validated user settings
     """
@@ -62,7 +62,7 @@ def get_validated_settings(data: Mapping) -> WampifySettings:
     class _WampifySettings(WampifySettings):
         wamp_session: _WampifySessionSettings
 
-    settings = _WampifySettings(**data)
+    settings = _WampifySettings(**KW)
 
     if settings.wamp_session.factory is None:
         settings.wamp_session.factory = AsyncioWampifySession
