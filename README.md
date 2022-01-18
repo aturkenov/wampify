@@ -17,7 +17,6 @@ Wampify built on top of [autobahn library](https://autobahn.readthedocs.io/en/la
 - [High performance](https://github.com/aturkenov/wampify/tree/main/example/benchmark)
 - [Remote Procedure Calls (RPC)](https://github.com/aturkenov/wampify#remote-procedure-call-rpc) and [Publish & Subscribe (PubSub)](https://github.com/aturkenov/wampify#publish--subscribe-pubsub)
 - [Payload validation](https://pydantic-docs.helpmanual.io/usage/validation_decorator/) based on [pydantic](https://pydantic-docs.helpmanual.io)
-- [Session pool](https://github.com/aturkenov/wampify#session-pool) ([SQLAlchemy](https://www.sqlalchemy.org), [Redis](https://redis.io), etc...)
 - [Serialization](https://github.com/aturkenov/wampify#serialization) (default [binary orjson](https://github.com/ijl/orjson))
 - [Signals (WAMP session joined, WAMP session leaved, etc...)](https://github.com/aturkenov/wampify#signals)
 - [Background tasks](https://github.com/aturkenov/wampify#backgroud-tasks)
@@ -46,20 +45,16 @@ Initialize Wampify application, then pass domain (URI prefix), your WAMP router 
 from wampify.core.wampify import Wampify
 
 wampify = Wampify(
-    settings={
-        'debug': True,
-        'wamp': {
-            'domain': 'com.example',
-            'router_url': 'ws://127.0.0.1:8080/private',
-            'session': {
-                'realm': 'example',
-                'authid': None,
-                'authmethods': ['anonymous'],
-                'authrole': 'private',
-                'show_registered': True,
-                'show_subscribed': True
-            }
-        }
+    debug=True,
+    uri_prefix='com.example',
+    router_url='ws://127.0.0.1:8080/private',
+    wamp_session={
+        'realm': 'example',
+        'authid': None,
+        'authmethods': ['anonymous'],
+        'authrole': 'private',
+        'show_registered': True,
+        'show_subscribed': True
     }
 )
 ```
@@ -68,9 +63,8 @@ wampify = Wampify(
 
 ## WAMP authentication
 
-TODO! Here must be about wamp authentication
 
-## Remote Procedure Call (RPC)
+## Remote Procedure Calls (RPC)
 
 (https://wamp-proto.org/faq.html#what-is-rpc)
 
@@ -108,8 +102,6 @@ async def hello(name: str = 'Anonymous'):
     print(f'{name} you are welcome!')
 ```
 
-TODO Here must be something about pattern matching
-
 ## Finally run it
 
 ```python
@@ -120,8 +112,6 @@ if __name__ == '__main__':
 # Advanced
 
 ## Story
-
-TODO! Here describe story
 
 ## Use WAMP session in procedure
 
@@ -137,19 +127,9 @@ async def hello(name: str = 'Anonymous'):
     print(f'{name} you are welcome!') 
 ```
 
-## Session pool
-
-Describe about session factory interface and how it works
-
 ## Serialization
 
-Describe how it works and that's all
-
 ## Backgroud Tasks
-
-Main process executes child process when background tasks pushed to queue.
-
-Describe, how to connect another session
 
 ```python
 from wampify.core.story import *
@@ -165,19 +145,16 @@ async def hello(name: str = 'Anonymous'):
 
 ## Signals
 
-Describe more about custom signals and firing
-
 ```python
-@wampify.on
+@wampify.on('_wamps_.joined')
 async def wamp_session_joined(): ...
 
-@wampify.on
+@wampify.on('_wamps_.joined')
 async def wamp_session_leaved(): ...
 ```
 
 ## Custom Middlewares
 
-Describe how you can use it
 
 # Benchmarks
 
@@ -187,9 +164,9 @@ Describe how you can use it
 
 - Unit tests
 - Better payload validation for subscriptions and pattern matching
+- Subscription white/black listing
 - Wampify serializer
 - Background tasks must have wamp session
-- Subscription white/black listing
 - Progressive calls
 - In Memory Cache
 - Uvloop support
@@ -202,9 +179,11 @@ Describe how you can use it
 https://stackoverflow.com/users/13774052/aidar-turkenov
 
 https://stackoverflow.com/questions/tagged/wamp
+
 https://stackoverflow.com/questions/tagged/wampify
 
 https://github.com/aturkenov/wampify/discussions
+
 https://github.com/aturkenov/wampify/issues
 
 a.k.turken0v@gmail.com
