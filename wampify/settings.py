@@ -16,6 +16,13 @@ class EndpointOptions(BaseModel):
     validate_payload = True
 
 
+class SignalOptions(BaseModel):
+    """
+    """
+
+    is_endpoint = True
+
+
 class WampifySessionSettings(BaseModel):
     """
     """
@@ -32,21 +39,14 @@ class WampifySessionSettings(BaseModel):
     show_subscribed = False
 
 
-class SessionPoolSettings(BaseModel):
-    """
-    """
-    factories = []
-
-
 class WampifySettings(BaseModel):
     """
     """
     debug = False
-    uri_prefix: str = None
     router_url: str = None
     start_loop = True
+    uri_prefix: str = None
     wamp_session: WampifySessionSettings
-    session_pool: SessionPoolSettings = SessionPoolSettings()
 
 
 def get_validated_settings(data: Mapping) -> WampifySettings:

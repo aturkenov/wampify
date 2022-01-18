@@ -1,14 +1,17 @@
 from .story import *
-from .request import *
-from .endpoint import *
-from .session_pool import *
-from .background_task import *
-from .middleware import *
-from settings import *
-import asyncio
-from multiprocessing import Process
+from .request import (
+    BaseRequest, CallRequest, PublishRequest
+)
+from .endpoint import (
+    Endpoint, SharedEndpoint, RegisterEndpoint, SubscribeEndpoint
+)
+from .middleware import BaseMiddleware
+from .signal_manager import SignalManager
+from .error import SomethingWentWrong
+from settings import WampifySettings, EndpointOptions
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError
+from typing import List, Any, Callable, Mapping
 
 
 class Entrypoint:
@@ -21,20 +24,22 @@ class Entrypoint:
     - `user_settings`
     """
 
-    _story: Story
     _endpoint: Endpoint 
     _settings: WampifySettings
     _wamps: WAMPIS
+    _signal_manager: SignalManager
 
     def __init__(
         self,
         procedure: Callable,
         user_settings: WampifySettings,
         wamps: WAMPIS,
+        signal_manager: SignalManager
     ) -> None:
         self._endpoint = Endpoint(procedure)
         self._settings = user_settings
         self._wamps = wamps
+        self._signal_manager = signal_manager
 
     async def execute(
         self,
@@ -42,18 +47,16 @@ class Entrypoint:
         K = {},
         D = None
     ) -> Any:
-        self._story = create_story()
-        self._story.wamps = self._wamps
-        self._story.session_pool = SessionPool(
-            self._settings.session_pool.factories
-        )
+        story = create_story()
+        story._wamps_ = self._wamps
+        story._settings_ = self._settings
         try:
+            await self._signal_manager.fire('_entrypoint_.opened', story)
             output = await self._endpoint(*A, **K)
-        except BaseException as E:
-            await self._story.session_pool.raise_released()
-            raise E
+        except BaseException as e:
+            await self._signal_manager.fire('_entrypoint_.raised', story, e)
         else:
-            await self._story.session_pool.close_released()
+            await self._signal_manager.fire('_entrypoint_.closed', story)
             return output
 
     async def __call__(
@@ -71,20 +74,22 @@ class SharedEntrypoint(Entrypoint):
     def __init__(
         self,
         procedure: Callable,
-        endpoint_settings: EndpointOptions,
-        wamps: WAMPIS,
+        endpoint_options: EndpointOptions,
         user_settings: WampifySettings,
         user_middlewares: List[BaseMiddleware],
         user_serializers: List[Callable],
+        wamps: WAMPIS,
+        signal_manager: SignalManager
     ):
         self._settings = user_settings
-        self._wamps = wamps
         self._endpoint = self._create_endpoint(
-            procedure, endpoint_settings, user_serializers
+            procedure, endpoint_options, user_serializers
         )
         self._build_responsibility_chain(
             user_middlewares, self._endpoint
         )
+        self._wamps = wamps
+        self._signal_manager = signal_manager
 
     def _build_responsibility_chain(
         self,
@@ -128,30 +133,9 @@ class SharedEntrypoint(Entrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_settings: EndpointOptions,
+        endpoint_options: EndpointOptions,
         user_serilizers: List[Callable]
     ) -> SharedEndpoint: ...
-
-    async def _execute_background_tasks(
-        self
-    ) -> None:
-        """
-        If queue not empty, execute background tasks, 
-        in another process and new asyncio event loop
-        """
-        background_tasks = self._story.background_tasks.get_list()
-
-        def in_another_process():
-            loop = asyncio.new_event_loop()
-            for p, a, k in background_tasks:
-                entrypoint = Entrypoint(p, self._settings)
-                loop.run_until_complete(entrypoint(*a, **k))
-
-        if len(background_tasks) == 0:
-            return
-
-        p = Process(target=in_another_process)
-        p.start()
 
     async def execute(
         self,
@@ -159,19 +143,17 @@ class SharedEntrypoint(Entrypoint):
         K = {},
         D = None
     ) -> Any:
-        self._story = create_story()
-        self._story.wamps = self._wamps
-        self._request = self._create_request(A, K, D)
-        self._story.session_pool = SessionPool(
-            self._settings.session_pool.factories
-        )
-        self._story.background_tasks = BackgroundTasks()
-        self._story.client = self._request.client
+        story = create_story()
+        story._wamps_ = self._wamps
+        story._settings_ = self._settings
+        request = self._create_request(A, K, D)
+        story._client_ = request.client
         try:
-            output = await self._middleware(self._request)
+            await self._signal_manager.fire('_entrypoint_.opened', story)
+            output = await self._middleware(request)
         except BaseException as e:
-            await self._story.session_pool.raise_released()
- 
+            await self._signal_manager.fire('_entrypoint_.raised', story, e)
+
             if self._settings.debug:
                 raise e
             try:
@@ -184,8 +166,7 @@ class SharedEntrypoint(Entrypoint):
                 payload = e.to_primitive()
             raise ApplicationError(error=name, payload=payload)
         else:
-            await self._execute_background_tasks()
-            await self._story.session_pool.close_released()
+            await self._signal_manager.fire('_entrypoint_.closed', story)
             return output
 
     def _create_request(
@@ -201,11 +182,11 @@ class CallEntrypoint(SharedEntrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_settings: EndpointOptions,
+        endpoint_options: EndpointOptions,
         user_serilizers: List[Callable]
     ) -> RegisterEndpoint:
         return RegisterEndpoint(
-            procedure, endpoint_settings.validate_payload, user_serilizers
+            procedure, endpoint_options.validate_payload, user_serilizers
         )
 
     def _create_request(
@@ -224,11 +205,11 @@ class PublishEntrypoint(SharedEntrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_settings: EndpointOptions,
+        endpoint_options: EndpointOptions,
         user_serilizers: List[Callable]
     ) -> SubscribeEndpoint:
         return SubscribeEndpoint(
-            procedure, endpoint_settings.validate_payload, user_serilizers
+            procedure, endpoint_options.validate_payload, user_serilizers
         )
 
     def _create_request(

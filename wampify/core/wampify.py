@@ -1,11 +1,17 @@
-from .wamp import *
-from .entrypoint import *
-from .middleware import *
-from .signal_manager import *
-from settings import *
+from .wamp import WAMPShoppingCart
+from .middleware import BaseMiddleware
+from .signal_manager import SignalManager
+from .entrypoint import (
+    Entrypoint, CallEntrypoint, PublishEntrypoint
+)
+from . import background_task
+from settings import (
+    WampifySettings, get_validated_settings,
+    EndpointOptions, SignalOptions
+)
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.asyncio.wamp import ApplicationRunner as AsyncioApplicationRunner
-from typing import *
+from typing import Callable, Union, List, Mapping
 
 
 class Wampify:
@@ -26,7 +32,7 @@ class Wampify:
 
     def __init__(
         self,
-        settings: Dict
+        settings: Mapping
     ) -> None:
         self._wamps = None
         self._middlewares = []
@@ -38,6 +44,7 @@ class Wampify:
         self.wamps_factory._cart = self._cart
         self._signal_manager = SignalManager()
         self.wamps_factory._signal_manager = self._signal_manager
+        background_task.mount(self)
 
     def add_middleware(
         self,
@@ -81,8 +88,8 @@ class Wampify:
         """
         entrypoint = CallEntrypoint(
             procedure, EndpointOptions(**options),
-            self._wamps, self.settings,
-            self._middlewares, self._serializers,
+            self.settings, self._middlewares, self._serializers,
+            self._wamps, self._signal_manager
         )
 
         async def on_call(
@@ -117,8 +124,8 @@ class Wampify:
         """
         entrypoint = PublishEntrypoint(
             procedure, EndpointOptions(**options),
-            self._wamps, self.settings,
-            self._middlewares, self._serializers,
+            self.settings, self._middlewares, self._serializers,
+            self._wamps, self._signal_manager
         )
 
         async def on_publish(
@@ -153,8 +160,14 @@ class Wampify:
         >>>     'wamp_session_leaved', on_wamp_session_leaved
         >>> )
         """
-        entrypoint = Entrypoint(procedure, self._wamps)
-        self._signal_manager.add(name, entrypoint)
+        endpoint_options = SignalOptions(**options)
+        if endpoint_options.is_endpoint:
+            entrypoint = Entrypoint(
+                procedure, self.settings, self._wamps, self._signal_manager
+            )
+            self._signal_manager.add(name, entrypoint.__call__)
+        else:
+            self._signal_manager.add(name, procedure)
         return procedure
 
     def register(
@@ -166,7 +179,7 @@ class Wampify:
         """
         Adds register procedure as decorator
 
-        Takes procedure name if URI segment is not passed
+        Uses procedure name if URI segment is not passed
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
 
@@ -199,7 +212,7 @@ class Wampify:
         """
         Adds subscribe procedure as decorator
 
-        Takes procedure name if URI segment is not passed
+        Uses procedure name if URI segment is not passed
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
 
@@ -233,7 +246,7 @@ class Wampify:
         Adds signal ('wamp_session_joined', 'wamp_session_leaved',
         etc...) as decorator
 
-        Takes procedure name if signal_name is not passed
+        Uses procedure name if signal_name is not passed
 
         - `options`: `SignalOptions` (go to wampify/settings.py)
 

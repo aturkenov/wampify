@@ -1,4 +1,4 @@
-from typing import *
+from typing import List, Tuple, Callable, Iterable, Mapping
 
 
 class BackgroundTasks:
@@ -12,7 +12,7 @@ class BackgroundTasks:
 
     def add(
         self,
-        task: Union[Awaitable, Callable],
+        task: Callable,
         *A: Iterable,
         **K: Mapping
     ) -> None:
@@ -25,4 +25,39 @@ class BackgroundTasks:
         self
     ) -> List[Tuple[Callable, Iterable, Mapping]]:
         return self._T
+
+
+def mount(wampify):
+    import asyncio
+    from multiprocessing import Process
+    from .entrypoint import Entrypoint
+
+    def on_entrypoint_opened(
+        story
+    ):
+        story._background_tasks_ = BackgroundTasks()
+
+    def on_entrypoint_closed(
+        story
+    ) -> None:
+        """
+        If queue not empty, execute background tasks, 
+        in another process and new asyncio event loop
+        """
+        btasks = story._background_tasks_.get_list()
+
+        def in_another_process():
+            loop = asyncio.new_event_loop()
+            for p, a, kw in btasks:
+                entrypoint = Entrypoint(p, story._settings_, None, wampify._signal_manager)
+                loop.run_until_complete(entrypoint(*a, **kw))
+
+        if len(btasks) == 0:
+            return
+
+        p = Process(target=in_another_process)
+        p.start()
+
+    wampify._signal_manager.add('_entrypoint_.opened', on_entrypoint_opened)
+    wampify._signal_manager.add('_entrypoint_.closed', on_entrypoint_closed)
 

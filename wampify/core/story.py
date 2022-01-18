@@ -1,6 +1,6 @@
 from .client import Client
-from .session_pool import SessionPool
 from .background_task import BackgroundTasks
+from settings import WampifySettings
 from autobahn.wamp import ISession as WAMPIS
 from contextvars import ContextVar
 
@@ -10,10 +10,10 @@ class Story:
     Represents
     """
 
-    client: Client
-    session_pool: SessionPool
-    wamps: WAMPIS
-    background_tasks: BackgroundTasks
+    _settings_: WampifySettings
+    _client_: Client
+    _wamps_: WAMPIS
+    _background_tasks_: BackgroundTasks
 
 
 current_story_context = ContextVar('current_story_context')

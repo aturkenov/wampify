@@ -2,7 +2,7 @@ from .signal_manager import SignalManager
 from settings import WampifySessionSettings
 from autobahn.asyncio.wamp import ApplicationSession as AsyncioApplicationSession
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
-from typing import *
+from typing import Union, List, Tuple, Callable, Mapping, Any
 
 
 class WAMPShoppingCart:
@@ -19,7 +19,7 @@ class WAMPShoppingCart:
         self,
         uri_prefix: str = None
     ):
-        self.urip = uri_prefix
+        self._urip = uri_prefix
         self._R = []
         self._S = []
 

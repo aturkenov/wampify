@@ -1,0 +1,90 @@
+{
+    "version": 2,
+    "controller": {},
+    "workers": [
+        {
+            "type": "router",
+            "options": {},
+            "realms": [
+                {
+                    "name": "example",
+                    "roles": [
+                        {
+                            "name": "public",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "private",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": "../web"
+                        },
+                        "public": {
+                            "type": "websocket",
+                            "auth": {
+                                "anonymous": {
+                                   "type": "static",
+                                   "role": "public"
+                                }
+                            }
+                        },
+                        "private": {
+                            "type": "websocket",
+                            "auth": {
+                                "anonymous": {
+                                   "type": "static",
+                                   "role": "private"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
