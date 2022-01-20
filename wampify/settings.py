@@ -13,6 +13,7 @@ class BaseSettings(BaseModel):
 class EndpointOptions(BaseModel):
     """
     """
+
     validate_payload = True
 
 
@@ -26,6 +27,7 @@ class SignalOptions(BaseModel):
 class WampifySessionSettings(BaseModel):
     """
     """
+
     realm: str
     factory: Any = None
     authid: str = None
@@ -42,11 +44,12 @@ class WampifySessionSettings(BaseModel):
 class WampifySettings(BaseModel):
     """
     """
+
     debug = False
     router_url: str = None
     start_loop = True
     uri_prefix: str = None
-    wamp_session: WampifySessionSettings
+    wamps: WampifySessionSettings
 
 
 def get_validated_settings(**KW) -> WampifySettings:
@@ -60,12 +63,12 @@ def get_validated_settings(**KW) -> WampifySettings:
         # FIXME factory: WampifySession = WampifySession
 
     class _WampifySettings(WampifySettings):
-        wamp_session: _WampifySessionSettings
+        wamps: _WampifySessionSettings
 
     settings = _WampifySettings(**KW)
 
-    if settings.wamp_session.factory is None:
-        settings.wamp_session.factory = AsyncioWampifySession
+    if settings.wamps.factory is None:
+        settings.wamps.factory = AsyncioWampifySession
 
     return settings
 

@@ -4,11 +4,12 @@ from .signal_manager import SignalManager
 from .entrypoint import (
     Entrypoint, CallEntrypoint, PublishEntrypoint
 )
-from . import background_task
 from .settings import (
     WampifySettings, get_validated_settings,
     EndpointOptions, SignalOptions
 )
+from . import background_task
+from . import logger
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.asyncio.wamp import ApplicationRunner as AsyncioApplicationRunner
 from typing import Callable, Union, List, Mapping
@@ -16,7 +17,7 @@ from typing import Callable, Union, List, Mapping
 
 class Wampify:
     """
-    
+
     >>> Wampify(
     >>> 
     >>> )
@@ -38,13 +39,14 @@ class Wampify:
         self._middlewares = []
         self._serializers = []
         self.settings = get_validated_settings(**KW)
-        self.wamps_factory = self.settings.wamp_session.factory
-        self.wamps_factory._settings = self.settings.wamp_session
+        self.wamps_factory = self.settings.wamps.factory
+        self.wamps_factory._settings = self.settings.wamps
         self._cart = WAMPShoppingCart(self.settings.uri_prefix)
         self.wamps_factory._cart = self._cart
         self._signal_manager = SignalManager()
         self.wamps_factory._signal_manager = self._signal_manager
         background_task.mount(self)
+        logger.mount(self)
 
     def add_middleware(
         self,
@@ -99,7 +101,7 @@ class Wampify:
         ):
             return await entrypoint(A, K, _CALL_DETAILS_)
 
-        self._cart.add_register(
+        URI = self._cart.add_register(
             path, on_call, {'details_arg': '_CALL_DETAILS_'}
         )
         return procedure
@@ -135,7 +137,7 @@ class Wampify:
         ):
             return await entrypoint(A, K, _PUBLISH_DETAILS_)
 
-        self._cart.add_subscribe(
+        URI = self._cart.add_subscribe(
             path, on_publish, {'details_arg': '_PUBLISH_DETAILS_'}
         )
         return procedure
@@ -193,13 +195,13 @@ class Wampify:
             procedure: Callable
         ):
             path = path_or_procedure
-            if path_or_procedure is None:
+            if path is None:
                 path = procedure.__name__
-            return self.add_register(path, path_or_procedure, options)
+            return self.add_register(path, procedure, options)
         if callable(path_or_procedure):
             procedure = path_or_procedure
             path = procedure.__name__
-            self.add_register(path, path_or_procedure, options)
+            self.add_register(path, procedure, options)
             return procedure
         return decorate
 
@@ -226,13 +228,13 @@ class Wampify:
             procedure: Callable
         ):
             path = path_or_procedure
-            if path_or_procedure is None:
+            if path is None:
                 path = procedure.__name__
-            return self.add_subscribe(path, path_or_procedure, options)
+            return self.add_subscribe(path, procedure, options)
         if callable(path_or_procedure):
             procedure = path_or_procedure
             path = procedure.__name__
-            self.add_subscribe(path, path_or_procedure, options)
+            self.add_subscribe(path, procedure, options)
             return procedure
         return decorate
 
@@ -273,7 +275,7 @@ class Wampify:
     def run(
         self,
         router_url: str = None,
-        start_loop = None
+        start_loop=None
     ):
         """
         Runs WAMP session
@@ -299,4 +301,3 @@ class Wampify:
         if start_loop is None:
             start_loop = self.settings.start_loop
         return runner.run(create_session, start_loop=start_loop)
-

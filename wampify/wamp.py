@@ -36,28 +36,30 @@ class WAMPShoppingCart:
         path: str,
         procedure: Callable,
         O: Mapping[str, Any]
-    ):
+    ) -> str:
         """
         Adds register procdure
         """
         assert type(path) == str, 'path must be string'
         assert callable(procedure), 'procedure must be Callable'
-        I = self._create_uri(path)
-        self._R.append((I, procedure, O))
+        URI = self._create_uri(path)
+        self._R.append((URI, procedure, O))
+        return URI
 
     def add_subscribe(
         self,
         path: str,
         procedure: Callable,
         O: Mapping[str, Any]
-    ):
+    ) -> str:
         """
         Adds susbscribe procedure
         """
         assert type(path) == str, 'path must be string'
         assert callable(procedure), 'procedure must be Callable'
-        I = self._create_uri(path)
-        self._S.append((I, procedure, O))
+        URI = self._create_uri(path)
+        self._S.append((URI, procedure, O))
+        return URI
 
     def get_registered(
         self
@@ -116,7 +118,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
             if self._settings.show_registered:
                 print(f'{I} subscribed')
 
-        await self._signal_manager.fire('_wamps_.joined')
+        await self._signal_manager.fire('_wamps_.joined', self)
 
     async def onLeave(
         self,
@@ -126,7 +128,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
         """
         self.disconnect()
 
-        await self._signal_manager.fire('_wamps_.leaved')
+        await self._signal_manager.fire('_wamps_.leaved', self)
 
     async def onDisconnect(
         self

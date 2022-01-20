@@ -146,16 +146,13 @@ class SharedEntrypoint(Entrypoint):
         story = create_story()
         story._wamps_ = self._wamps
         story._settings_ = self._settings
-        request = self._create_request(A, K, D)
-        story._client_ = request.client
+        story._request_ = self._create_request(A, K, D)
         try:
             await self._signal_manager.fire('_entrypoint_.opened', story)
-            output = await self._middleware(request)
+            output = await self._middleware(story._request_)
         except BaseException as e:
             await self._signal_manager.fire('_entrypoint_.raised', story, e)
 
-            if self._settings.debug:
-                raise e
             try:
                 e.__init__()
                 name = f'{self._settings.uri_prefix}.error.{e.name}'
@@ -195,8 +192,6 @@ class CallEntrypoint(SharedEntrypoint):
         K,
         D
     ) -> CallRequest:
-        """
-        """
         return CallRequest(A, K, D)
 
 
@@ -218,7 +213,5 @@ class PublishEntrypoint(SharedEntrypoint):
         K,
         D
     ) -> PublishRequest:
-        """
-        """
         return PublishRequest(A, K, D)
 

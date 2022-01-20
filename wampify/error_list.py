@@ -5,16 +5,16 @@ class BaseError(BaseException):
     """
     """
 
-    _is_already_initialized: bool = False
+    _is_already_initialized = False
 
     name = 'base'
     cause: Any = None
 
-    def __init__(self, cause: Any = ...) -> None:
+    def __init__(self, cause: Any = None) -> None:
         if self._is_already_initialized:
-            return 
+            return
         self._is_already_initialized = True
-        if type(cause) != ...:
+        if cause is not None:
             self.cause = cause
 
     def to_primitive(cls):

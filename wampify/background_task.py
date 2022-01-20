@@ -27,7 +27,9 @@ class BackgroundTasks:
         return self._T
 
 
-def mount(wampify):
+def mount(
+    wampify
+) -> None:
     import asyncio
     from multiprocessing import Process
     from .entrypoint import Entrypoint

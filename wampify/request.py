@@ -1,5 +1,6 @@
 from .client import Client
 from autobahn.wamp import CallDetails, EventDetails
+from datetime import datetime
 from typing import Any, Iterable, Mapping
 
 
@@ -16,17 +17,20 @@ class BaseRequest:
     A: Iterable[Any]
     K: Mapping[str, Any]
     D: Any
+    URI: str
+    sent_time: datetime
     client: Client
 
     def __init__(
         self,
         A: Iterable[Any] = [],
         K: Mapping[str, Any] = {},
-        D = None
+        D = None,
     ):
         self.A = A
         self.K = K
         self.D = D
+        self.sent_time = datetime.utcnow()
 
 
 class CallRequest(BaseRequest):
@@ -49,6 +53,7 @@ class CallRequest(BaseRequest):
                 role=D.caller_authrole,
                 session_i=D.caller
             )
+            self.URI = D.procedure
 
 
 class PublishRequest(BaseRequest):
@@ -71,4 +76,5 @@ class PublishRequest(BaseRequest):
                 role=D.publisher_authrole,
                 session_i=D.publisher
             )
+            self.URI = D.topic
 
