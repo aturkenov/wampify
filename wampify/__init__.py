@@ -1,0 +1,2 @@
+from .wampify import Wampify
+

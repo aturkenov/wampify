@@ -1,5 +1,5 @@
-from wampify.core.wampify import Wampify
-from wampify.core.story import *
+from wampify import Wampify
+from wampify.story import *
 
 
 wampify = Wampify(

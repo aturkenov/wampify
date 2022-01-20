@@ -1,5 +1,5 @@
-from wampify.core.wampify import Wampify
-from wampify.core.middleware import BaseMiddleware
+from wampify import Wampify
+from wampify.middleware import BaseMiddleware
 
 
 wampify = Wampify(

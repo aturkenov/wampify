@@ -53,7 +53,7 @@ def get_validated_settings(**KW) -> WampifySettings:
     """
     Returns validated user settings
     """
-    from core.wamp import AsyncioWampifySession 
+    from .wamp import AsyncioWampifySession 
 
     class _WampifySessionSettings(WampifySessionSettings):
         ...

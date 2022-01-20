@@ -7,8 +7,8 @@ from .endpoint import (
 )
 from .middleware import BaseMiddleware
 from .signal_manager import SignalManager
-from .error import SomethingWentWrong
-from settings import WampifySettings, EndpointOptions
+from .error_list import SomethingWentWrong
+from .settings import WampifySettings, EndpointOptions
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError
 from typing import List, Any, Callable, Mapping

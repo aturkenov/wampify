@@ -1,5 +1,5 @@
 from .signal_manager import SignalManager
-from settings import WampifySessionSettings
+from .settings import WampifySessionSettings
 from autobahn.asyncio.wamp import ApplicationSession as AsyncioApplicationSession
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
 from typing import Union, List, Tuple, Callable, Mapping, Any

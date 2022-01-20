@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from core.request import *
-from core.error import *
+from wampify.request import *
+from wampify.error_list import *
 from typing import *
 from typing_extensions import *
 

@@ -1,5 +1,5 @@
-from .error import PayloadValidationError
-from shared.serializer import (
+from .error_list import PayloadValidationError
+from .shared.serializer import (
     is_primitive, serialize_primitive, DEFAULT_SERIALIZERS
 )
 from inspect import iscoroutinefunction as is_async

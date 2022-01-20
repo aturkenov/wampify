@@ -42,7 +42,7 @@ crossbar start
 Initialize Wampify application, then pass domain (URI prefix), your WAMP router URL, WAMP session realm and WAMP session authentication (anonymous).
 
 ```python
-from wampify.core.wampify import Wampify
+from wampify import Wampify
 
 wampify = Wampify(
     debug=True,
@@ -116,7 +116,7 @@ if __name__ == '__main__':
 ## Use WAMP session in procedure
 
 ```python
-from wampify.core.story import *
+from wampify.story import *
 
 @wampify.subscribe
 async def hello(name: str = 'Anonymous'):
@@ -132,7 +132,7 @@ async def hello(name: str = 'Anonymous'):
 ## Backgroud Tasks
 
 ```python
-from wampify.core.story import *
+from wampify.story import *
 
 def asap(): ...
 

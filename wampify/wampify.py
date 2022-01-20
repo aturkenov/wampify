@@ -5,7 +5,7 @@ from .entrypoint import (
     Entrypoint, CallEntrypoint, PublishEntrypoint
 )
 from . import background_task
-from settings import (
+from .settings import (
     WampifySettings, get_validated_settings,
     EndpointOptions, SignalOptions
 )

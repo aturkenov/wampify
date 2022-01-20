@@ -1,4 +1,4 @@
-from wampify.core.wampify import Wampify
+from wampify import Wampify
 
 
 wampify = Wampify(
