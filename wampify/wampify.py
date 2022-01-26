@@ -1,12 +1,10 @@
 from .wamp import WAMPShoppingCart
 from .middleware import BaseMiddleware
-from .signal_manager import SignalManager
 from .entrypoint import (
-    Entrypoint, CallEntrypoint, PublishEntrypoint
+    CallEntrypoint, PublishEntrypoint
 )
 from .settings import (
-    WampifySettings, get_validated_settings,
-    EndpointOptions, SignalOptions
+    WampifySettings, get_validated_settings, EndpointOptions
 )
 from . import background_task
 from . import logger
@@ -29,7 +27,6 @@ class Wampify:
     _middlewares: List[BaseMiddleware]
     _serializers: List[Callable]
     _cart: WAMPShoppingCart
-    _signal_manager: SignalManager
 
     def __init__(
         self,
@@ -43,8 +40,6 @@ class Wampify:
         self.wamps_factory._settings = self.settings.wamps
         self._cart = WAMPShoppingCart(self.settings.uri_prefix)
         self.wamps_factory._cart = self._cart
-        self._signal_manager = SignalManager()
-        self.wamps_factory._signal_manager = self._signal_manager
         background_task.mount(self)
         logger.mount(self)
 
@@ -89,9 +84,8 @@ class Wampify:
         >>> wampify.add_register('pow', pow)
         """
         entrypoint = CallEntrypoint(
-            procedure, EndpointOptions(**options),
-            self.settings, self._middlewares, self._serializers,
-            self._wamps, self._signal_manager
+            procedure, EndpointOptions(**options), self.settings,
+            self._middlewares, self._serializers, self._wamps
         )
 
         async def on_call(
@@ -125,9 +119,8 @@ class Wampify:
         >>> wampify.add_subscribe('hello', on_hello)
         """
         entrypoint = PublishEntrypoint(
-            procedure, EndpointOptions(**options),
-            self.settings, self._middlewares, self._serializers,
-            self._wamps, self._signal_manager
+            procedure, EndpointOptions(**options), self.settings,
+            self._middlewares, self._serializers, self._wamps
         )
 
         async def on_publish(
@@ -140,36 +133,6 @@ class Wampify:
         URI = self._cart.add_subscribe(
             path, on_publish, {'details_arg': '_PUBLISH_DETAILS_'}
         )
-        return procedure
-
-    def add_signal(
-        self,
-        name: str,
-        procedure: Callable,
-        options: Mapping
-    ) -> Callable:
-        """
-        Adds signal ('wamp_session_joined', 'wamp_session_leaved', etc...)
-
-        - `options`: `SignalOptions` (go to wampify/settings.py)
-
-        Returns passed procedure
-
-        >>> async def on_wamp_session_leaved():
-        >>>     print("I'll be back!")
-        >>>
-        >>> wampify.add_signal(
-        >>>     '_wamps_.leaved', on_wamp_session_leaved
-        >>> )
-        """
-        endpoint_options = SignalOptions(**options)
-        if endpoint_options.is_endpoint:
-            entrypoint = Entrypoint(
-                procedure, self.settings, self._wamps, self._signal_manager
-            )
-            self._signal_manager.add(name, entrypoint.__call__)
-        else:
-            self._signal_manager.add(name, procedure)
         return procedure
 
     def register(
@@ -238,40 +201,6 @@ class Wampify:
             return procedure
         return decorate
 
-    def on(
-        self,
-        signal_name_or_procedure: Union[str, Callable] = None,
-        *,
-        options: Mapping = {}
-    ) -> Callable:
-        """
-        Adds signal ('wamp_session_joined', 'wamp_session_leaved',
-        etc...) as decorator
-
-        Uses procedure name if signal_name is not passed
-
-        - `options`: `SignalOptions` (go to wampify/settings.py)
-
-        Returns passed procedure
-
-        >>> @wampify.on('_wamps_.leaved')
-        >>> async def wamp_session_leaved():
-        >>>     print("I'll be back!")
-        """
-        def decorate(
-            procedure: Callable
-        ):
-            signal_name = signal_name_or_procedure
-            if signal_name is None:
-                signal_name = procedure.__name__
-            return self.add_signal(signal_name, procedure, options)
-        if callable(signal_name_or_procedure):
-            procedure = signal_name_or_procedure
-            signal_name = procedure.__name__
-            self.add_signal(signal_name, procedure, options)
-            return procedure
-        return decorate
-
     def run(
         self,
         router_url: str = None,
@@ -301,3 +230,4 @@ class Wampify:
         if start_loop is None:
             start_loop = self.settings.start_loop
         return runner.run(create_session, start_loop=start_loop)
+

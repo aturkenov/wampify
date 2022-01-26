@@ -17,13 +17,6 @@ class EndpointOptions(BaseModel):
     validate_payload = True
 
 
-class SignalOptions(BaseModel):
-    """
-    """
-
-    is_endpoint = True
-
-
 class WampifySessionSettings(BaseModel):
     """
     """

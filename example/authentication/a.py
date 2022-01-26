@@ -6,7 +6,7 @@ wampify = Wampify(
     debug=False,
     uri_prefix='com.example',
     router_url='ws://127.0.0.1:8080/private',
-    wamp_session={
+    wamps={
         'realm': 'example',
         'authmethods': ['anonymous'],
         'show_registered': True,

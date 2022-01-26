@@ -1,3 +1,4 @@
+from .signal_manager import entrypoint_signals
 from typing import List, Tuple, Callable, Iterable, Mapping
 
 
@@ -51,7 +52,7 @@ def mount(
         def in_another_process():
             loop = asyncio.new_event_loop()
             for p, a, kw in btasks:
-                entrypoint = Entrypoint(p, story._settings_, None, wampify._signal_manager)
+                entrypoint = Entrypoint(p, story._settings_, None)
                 loop.run_until_complete(entrypoint(*a, **kw))
 
         if len(btasks) == 0:
@@ -60,6 +61,6 @@ def mount(
         p = Process(target=in_another_process)
         p.start()
 
-    wampify._signal_manager.add('_entrypoint_.opened', on_entrypoint_opened)
-    wampify._signal_manager.add('_entrypoint_.closed', on_entrypoint_closed)
+    entrypoint_signals.add('opened', on_entrypoint_opened)
+    entrypoint_signals.add('closed', on_entrypoint_closed)
 

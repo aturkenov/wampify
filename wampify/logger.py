@@ -1,6 +1,6 @@
 import logging
-import traceback
 from datetime import datetime
+from .signal_manager import wamps_signals, entrypoint_signals
 
 
 logger = logging.getLogger('wampify')
@@ -12,12 +12,14 @@ def mount(
     from .request import CallRequest, PublishRequest
 
     def on_wamps_joined(
-        wamps
+        wamps,
+        details
     ):
         logger.info('WAMP Session joined')
 
     def on_wamps_leaved(
-        wamps
+        wamps,
+        details
     ):
         logger.info('WAMP Session leaved')
 
@@ -71,9 +73,9 @@ def mount(
             f'{story._request_.URI}'
         )
 
-    wampify._signal_manager.add('_wamps_.joined', on_wamps_joined)
-    wampify._signal_manager.add('_wamps_.leaved', on_wamps_leaved)
-    wampify._signal_manager.add('_entrypoint_.opened', on_entrypoint_opened)
-    wampify._signal_manager.add('_entrypoint_.raised', on_entrypoint_raised)
-    wampify._signal_manager.add('_entrypoint_.closed', on_entrypoint_closed)
+    wamps_signals.add('joined', on_wamps_joined)
+    wamps_signals.add('leaved', on_wamps_leaved)
+    entrypoint_signals.add('opened', on_entrypoint_opened)
+    entrypoint_signals.add('raised', on_entrypoint_raised)
+    entrypoint_signals.add('closed', on_entrypoint_closed)
 

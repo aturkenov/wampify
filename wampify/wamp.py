@@ -1,4 +1,4 @@
-from .signal_manager import SignalManager
+from .signal_manager import wamps_signals
 from .settings import WampifySessionSettings
 from autobahn.asyncio.wamp import ApplicationSession as AsyncioApplicationSession
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
@@ -83,7 +83,6 @@ class AsyncioWampifySession(AsyncioApplicationSession):
     """
 
     _cart: WAMPShoppingCart
-    _signal_manager: SignalManager
     _settings: WampifySessionSettings
 
     async def onConnect(
@@ -118,7 +117,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
             if self._settings.show_registered:
                 print(f'{I} subscribed')
 
-        await self._signal_manager.fire('_wamps_.joined', self)
+        await wamps_signals.fire('joined', self, details)
 
     async def onLeave(
         self,
@@ -128,7 +127,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
         """
         self.disconnect()
 
-        await self._signal_manager.fire('_wamps_.leaved', self)
+        await wamps_signals.fire('leaved', self, details)
 
     async def onDisconnect(
         self

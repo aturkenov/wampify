@@ -1,11 +1,13 @@
 from wampify import Wampify
+from wampify.signal_manager import wamps_signals
+from autobahn.wamp import ISession
 
 
 wampify = Wampify(
     debug=False,
     uri_prefix='com.example',
     router_url='ws://127.0.0.1:8080/private',
-    wamp_session={
+    wamps={
         'realm': 'example',
         'show_registered': True,
         'show_subscribed': True
@@ -13,14 +15,14 @@ wampify = Wampify(
 )
 
 
-@wampify.on('_wamps_.joined')
-async def wamp_session_joined():
-    print('Session was joined') 
+@wamps_signals.on
+async def joined(wamps: ISession, details):
+    wamps.publish('com.example.hello_world')
 
 
-@wampify.on('_wamps_.leaved')
-def wamp_session_leaved():
-    print('Session was leaved') 
+@wamps_signals.on
+def leaved(wamps: ISession, details):
+    wamps.publish('com.example.ill_be_back')
 
 
 if __name__ == '__main__':
