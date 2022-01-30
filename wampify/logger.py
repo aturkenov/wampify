@@ -11,23 +11,27 @@ def mount(
 ) -> None:
     from .request import CallRequest, PublishRequest
 
-    def on_wamps_joined(
+    @wamps_signals.on
+    def joined(
         wamps,
         details
     ):
         logger.info('WAMP Session joined')
 
-    def on_wamps_leaved(
+    @wamps_signals.on
+    def leaved(
         wamps,
         details
     ):
         logger.info('WAMP Session leaved')
 
-    def on_entrypoint_opened(
+    @entrypoint_signals.on
+    def opened(
         story
     ): ...
 
-    def on_entrypoint_raised(
+    @entrypoint_signals.on
+    def raised(
         story,
         e
     ):
@@ -52,7 +56,8 @@ def mount(
             f'{story._request_.URI}({get_request_arguments()})'
         )
 
-    def on_entrypoint_closed(
+    @entrypoint_signals.on
+    def closed(
         story
     ):
         def calculate_runtime() -> str:
@@ -72,10 +77,4 @@ def mount(
             f'{calculate_runtime()}ms {get_method()}! {get_client()} '
             f'{story._request_.URI}'
         )
-
-    wamps_signals.add('joined', on_wamps_joined)
-    wamps_signals.add('leaved', on_wamps_leaved)
-    entrypoint_signals.add('opened', on_entrypoint_opened)
-    entrypoint_signals.add('raised', on_entrypoint_raised)
-    entrypoint_signals.add('closed', on_entrypoint_closed)
 

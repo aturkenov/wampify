@@ -35,12 +35,14 @@ def mount(
     from multiprocessing import Process
     from .entrypoint import Entrypoint
 
-    def on_entrypoint_opened(
+    @entrypoint_signals.on
+    def opened(
         story
     ):
         story._background_tasks_ = BackgroundTasks()
 
-    def on_entrypoint_closed(
+    @entrypoint_signals.on
+    def closed(
         story
     ) -> None:
         """
@@ -60,7 +62,4 @@ def mount(
 
         p = Process(target=in_another_process)
         p.start()
-
-    entrypoint_signals.add('opened', on_entrypoint_opened)
-    entrypoint_signals.add('closed', on_entrypoint_closed)
 
