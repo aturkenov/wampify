@@ -189,7 +189,7 @@ async def closed(story):
     print('SQLAlchemy Async Session closed')
 ```
 
-## Redis
+## How to connect Redis?
 
 # Benchmarks
 
