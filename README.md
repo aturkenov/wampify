@@ -1,7 +1,8 @@
 # Wampify - WAMP framework
 
 ![license](https://img.shields.io/github/license/aturkenov/wampify)
-![license](https://img.shields.io/pypi/v/wampify)
+![package-version](https://img.shields.io/pypi/v/wampify)
+![pyversions](https://img.shields.io/pypi/pyversions/wampify)
 
 [Web Application Messaging Protocol (WAMP)](https://wamp-proto.org/intro.html) is an open standard WebSocket subprotocol that provides two messaging patterns in one Web native protocol:
 
