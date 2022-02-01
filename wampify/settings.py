@@ -34,6 +34,20 @@ class WampifySessionSettings(BaseModel):
     show_subscribed = False
 
 
+class WAMPClientSettings(BaseModel):
+    """
+    """
+
+    realm: str
+    authid: str = None
+    authrole: str = None
+    authmethods: List[str] = None
+    authextra: Any = None
+    resumable: str = None
+    resume_session: str = None
+    resume_token: str = None
+
+
 class WampifySettings(BaseModel):
     """
     """
