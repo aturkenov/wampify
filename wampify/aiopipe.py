@@ -14,8 +14,7 @@ def aiopipe() -> Tuple['AioPipeReader', 'AioPipeWriter']:
 def aioduplex() -> Tuple['AioDuplex', 'AioDuplex']:
     rxa, txa = aiopipe()
     rxb, txb = aiopipe()
-
-    return AioDuplex(rxa, txb), AioDuplex(rxb, txa, detach=True)
+    return AioDuplex(rxa, txb), AioDuplex(rxb, txa)
 
 
 class AioPipeStream:
@@ -94,31 +93,28 @@ class AioDuplex:
 
     def __init__(
         self,
-        rx: AioPipeReader,
-        tx: AioPipeWriter,
-        detach = False
+        reader: AioPipeReader,
+        writer: AioPipeWriter
     ):
-        self._rx = rx
-        self._tx = tx
-        if detach:
-            self.detach()
+        self._reader = reader
+        self._writer = writer
 
     def detach(
         self
     ) -> None:
-        self._rx.detach()
-        self._tx.detach()
+        self._reader.detach()
+        self._writer.detach()
 
     async def open(
         self
     ) -> Tuple[AioPipeReader, AioPipeWriter]:
-        rx = await self._rx.open()
-        tx = await self._tx.open()
+        rx = await self._reader.open()
+        tx = await self._writer.open()
         return rx, tx
 
     async def close(
         self
     ) -> None:
-        await self._rx.close()
-        await self._tx.close()
+        await self._reader.close()
+        await self._writer.close()
 
