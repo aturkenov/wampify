@@ -71,13 +71,12 @@ class WAMPBridgeOutside:
     async def _listen_pipe(
         self
     ):
-        async def _f(payload):
+        async def f(payload):
             try:
                 sequence, method, URI, A, K = self._parse(payload)
             except:
                 self._tx.write(b'something_went_wrong\n')
             else:
-                await asyncio.sleep(1)
                 try:
                     if method == 'C':
                         returning = await self._wamps.call(URI, *A, **K)
@@ -97,7 +96,7 @@ class WAMPBridgeOutside:
 
         while True:
             payload = await self._rx.readline()
-            asyncio.create_task(_f(payload))
+            asyncio.create_task(f(payload))
 
         await self._pipe.close()
 
@@ -165,6 +164,7 @@ class WAMPBridge:
     ):
         self._sequence = 0
         self._wampc_joined = False
+        self._map = {}
         self._write_lock = asyncio.Lock()
         self._read_lock = asyncio.Lock()
 
@@ -196,8 +196,8 @@ class WAMPBridge:
         payload: bytes
     ):
         decoded = json.loads(payload)
-        sequence = decoded.get('sequence', None)
-        status = decoded.get('status', 0)
+        sequence = UUID(decoded.get('sequence', None))
+        status = int(decoded.get('status', 0))
         returning = decoded.get('returning', None)
         return sequence, status, returning
 
@@ -209,38 +209,53 @@ class WAMPBridge:
         K: Mapping = {}
     ) -> Any:
         if not self._wampc_joined:
-            return
+            raise
 
         async with self._write_lock:
-            sequence = self._get_message_sequence()
+            asequence = self._get_message_sequence()
             self._increase_message_sequence()
 
-            command = self._generate(sequence, method, URI, A, K)
+            command = self._generate(asequence, method, URI, A, K)
             self._tx.write(command)
 
-        async with self._read_lock:
-            output = await self._rx.readline()
+        async def f():
+            async with self._read_lock:
+                while True:
+                    output = await self._rx.readline()
+                    bsequence, status, returning = self._parse(output)
+                    if asequence == bsequence:
+                        return bsequence, status, returning
+                    task: asyncio.Task = self._map.pop(bsequence, None)
+                    if task is None:
+                        continue
+                    task._returning_ = bsequence, status, returning
+                    task.cancel()
 
-            sequence, status, returning = self._parse(output)
+        task = asyncio.create_task(f())
+        self._map[asequence] = task
+        try:
+            bsequence, status, returning = await task
+        except asyncio.CancelledError:
+            bsequence, status, returning = task._returning_
 
-            if status == 0:
-                if returning is None:
-                    returning = {}
+        if status == 0:
+            if returning is None:
+                returning = {}
 
-                A = returning.get('args', [])
-                K = returning.get('kwargs', {})
-                raise ApplicationError(
-                    returning.get('error', 'wamp.error'),
-                    *A,
-                    enc_algo=returning.get('enc_algo', None),
-                    callee=returning.get('callee', None),
-                    callee_authid=returning.get('callee_authid', None),
-                    callee_authrole=returning.get('callee_authrole', None),
-                    forward_for=returning.get('forward_for', None),
-                    **K
-                )
+            A = returning.get('args', [])
+            K = returning.get('kwargs', {})
+            raise ApplicationError(
+                returning.get('error', 'wamp.error'),
+                *A,
+                enc_algo=returning.get('enc_algo', None),
+                callee=returning.get('callee', None),
+                callee_authid=returning.get('callee_authid', None),
+                callee_authrole=returning.get('callee_authrole', None),
+                forward_for=returning.get('forward_for', None),
+                **K
+            )
 
-            return returning
+        return returning
 
     async def _check_pipe(
         self
@@ -265,8 +280,8 @@ class WAMPBridge:
         """
         """
         self._pipe, b = aioduplex()
-        b.detach()
         self._rx, self._tx = await self._pipe.open()
+        b.detach()
         self._spawn_child_process(b)
         await self._check_pipe()
 
@@ -288,7 +303,9 @@ class WAMPBridge:
     ):
         """
         """
+        a = datetime.now()
         response = await self._dispatch('C', URI, A, K)
+        print(datetime.now() - a, 'C')
         return response
 
     async def publish(
@@ -301,7 +318,7 @@ class WAMPBridge:
         """
         a = datetime.now()
         response = await self._dispatch('P', URI, A, K)
-        print(datetime.now() - a)
+        print(datetime.now() - a, 'P')
         return response
 
 
@@ -364,27 +381,45 @@ class WAMPClient:
 async def main():
     client = WAMPClient()
     await client.join()
-    await asyncio.sleep(1)
-    import threading
-    print(threading.active_count())
-    await asyncio.gather(
+    # await asyncio.sleep(1)
+    # import threading
+    # print(threading.active_count())
+    print(await asyncio.gather(
         client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
+        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
         # client.call('com.example.pow', 1, 2, 3, {0:'\n'}, hello='world')
-    )
+        return_exceptions=True
+    ))
     await client.leave()
+    print('thats all')
 
 
 asyncio.run(main())

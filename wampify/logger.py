@@ -52,8 +52,9 @@ def mount(
             return str(story._request_.A) + str(story._request_.K)
 
         logger.exception(
-            f'{calculate_runtime()}ms ERROR {get_method()}! {get_client()} '
-            f'{story._request_.URI}({get_request_arguments()})'
+            f'{calculate_runtime()}s '
+            f'{get_client()} '
+            f'{get_method()} {story._request_.URI}({get_request_arguments()}) '
         )
 
     @entrypoint_signals.on
@@ -68,13 +69,14 @@ def mount(
                 return 'RPC'
             if type(story._request_) == PublishRequest:
                 return 'PUBLISH'
-            return 'undefined'
+            return 'UNDEFINED'
 
         def get_client():
             return str(story._request_.client.i)
 
         logger.info(
-            f'{calculate_runtime()}ms {get_method()}! {get_client()} '
-            f'{story._request_.URI}'
+            f'{calculate_runtime()}s '
+            f'{get_client()} ;)'
+            f'{get_method()} {story._request_.URI}(...) '
         )
 
