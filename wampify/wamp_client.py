@@ -1,4 +1,5 @@
-# from .settings import WAMPClientSettings
+from .aiopipe import aioduplex, AioDuplex
+from .error_list import WAMPClientHasNotJoinedYet
 from autobahn.wamp import ISession, ApplicationError
 from autobahn.asyncio.wamp import (
     ApplicationSession as AsyncioApplicationSession,
@@ -8,8 +9,16 @@ import asyncio
 import orjson as json
 from uuid import UUID
 from multiprocessing import Process
-from aiopipe import aioduplex, AioDuplex
-from typing import Literal, Iterable, Mapping, Tuple, Any
+from typing import (
+    Literal, Iterable, Mapping, Tuple, Any, Union
+)
+
+
+WAMP_METHOD_JOIN = 'J'
+WAMP_METHOD_LEAVE = 'L'
+WAMP_METHOD_CALL = 'C'
+WAMP_METHOD_PUBLISH = 'P'
+AVAILABLE_WAMP_METHODS = Literal['L', 'C', 'P']
 
 
 class WAMPBridgeOutside:
@@ -28,7 +37,6 @@ class WAMPBridgeOutside:
         payload: bytes
     ) -> Tuple[UUID, str, str, Iterable, Mapping]:
         """
-        
         """
         command = json.loads(payload)
         sequence = command['sequence']
@@ -41,10 +49,10 @@ class WAMPBridgeOutside:
     def _generate_answer(
         self,
         sequence: UUID,
-        returning: Any
+        payload: Any
     ) -> bytes:
         return json.dumps(
-            {'sequence': sequence, 'status': 1, 'returning': returning},
+            {'sequence': sequence, 'status': 1, 'payload': payload},
             option=(json.OPT_NON_STR_KEYS | json.OPT_APPEND_NEWLINE)
         )
 
@@ -53,7 +61,7 @@ class WAMPBridgeOutside:
         sequence: UUID,
         e: ApplicationError
     ) -> bytes:
-        returning = {
+        payload = {
             'error': e.error,
             'enc_algo': e.enc_algo,
             'callee': e.callee,
@@ -64,16 +72,16 @@ class WAMPBridgeOutside:
             'kwargs': e.kwargs
         }
         return json.dumps(
-            {'sequence': sequence, 'status': 0, 'returning': returning},
+            {'sequence': sequence, 'status': 0, 'payload': payload},
             option=(json.OPT_NON_STR_KEYS | json.OPT_APPEND_NEWLINE)
         )
 
     async def _listen_pipe(
         self
     ):
-        async def f(payload):
+        async def f(inpayload):
             try:
-                sequence, method, URI, A, K = self._parse(payload)
+                sequence, method, URI, A, K = self._parse(inpayload)
             except:
                 self._tx.write(b'something_went_wrong\n')
             else:
@@ -95,8 +103,8 @@ class WAMPBridgeOutside:
             return True
 
         while True:
-            payload = await self._rx.readline()
-            asyncio.create_task(f(payload))
+            line = await self._rx.readline()
+            asyncio.create_task(f(line))
 
         await self._pipe.close()
 
@@ -126,45 +134,47 @@ class WAMPClientSession(AsyncioApplicationSession):
 
 
 def run_wamp_client(
-    pipe: AioDuplex
+    pipe: AioDuplex,
+    router_url: str,
+    wampc_session: WAMPClientSession
 ):
-    loop = asyncio.new_event_loop()
-    bridge = WAMPBridgeOutside(pipe)
-
-    async def run_wamp():
-        WAMPClientSession._bridge = bridge
-        runner = AsyncioApplicationRunner(
-            'ws://0.0.0.0:8080/private',
-            'example'
-        )
-        _ = runner.run(WAMPClientSession, start_loop=False)
+    async def arun():
+        bridge = WAMPBridgeOutside(pipe)
+        wampc_session._bridge = bridge
+        runner = AsyncioApplicationRunner(router_url, 'example')
+        _ = runner.run(wampc_session, start_loop=False)
         await asyncio.create_task(_)
         await bridge.start()
 
-    loop.run_until_complete(run_wamp())
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(arun())
     loop.run_forever()
-
-
-from datetime import datetime
 
 
 class WAMPBridge:
     """
     """
 
-    _i: int
     _pipe: AioDuplex
+    _sequence: int
+    _todo: Mapping[UUID, asyncio.Task]
+    _write_lock: asyncio.Lock
+    _read_lock: asyncio.Lock
     _process: Process
     _wampc_joined: bool
+    _router_url: str
+    _wampc_session: WAMPClientSession
 
     def __init__(
         self,
-        *A,
-        **K
+        router_url: str,
+        wampc_session: WAMPClientSession
     ):
+        self._router_url = router_url
+        self._wampc_session = wampc_session
         self._sequence = 0
         self._wampc_joined = False
-        self._map = {}
+        self._todo: Mapping[UUID, asyncio.Task] = {}
         self._write_lock = asyncio.Lock()
         self._read_lock = asyncio.Lock()
 
@@ -175,13 +185,13 @@ class WAMPBridge:
 
     def _get_message_sequence(
         self
-    ):
+    ) -> UUID:
         return UUID(int=self._sequence)
 
     def _generate(
         self,
         sequence: UUID,
-        method: Literal['J', 'L', 'C', 'P'],
+        method: AVAILABLE_WAMP_METHODS,
         URI: str = None,
         A: Iterable = tuple(),
         K: Mapping = {}
@@ -193,23 +203,69 @@ class WAMPBridge:
 
     def _parse(
         self,
-        payload: bytes
-    ):
-        decoded = json.loads(payload)
+        encoded: bytes
+    ) -> Tuple[UUID, int, Any]:
+        decoded = json.loads(encoded)
         sequence = UUID(decoded.get('sequence', None))
         status = int(decoded.get('status', 0))
-        returning = decoded.get('returning', None)
-        return sequence, status, returning
+        payload = decoded.get('payload', None)
+        return sequence, status, payload
+
+    async def _receive_dispatched_(
+        self,
+        asequence: UUID
+    ):
+        # This function will work until the task receives required data
+        # asyncio.streams.StreamReader doesn't support concurrent reading
+        self._todo[asequence] = asyncio.current_task()
+        # FIXME check to while True
+        while True:
+            # Locks from concurrent execution
+            async with self._read_lock:
+                # Waiting for data to be received
+                line = await self._rx.readline()
+                bsequence, status, payload = self._parse(line)
+                if asequence == bsequence:
+                    # It executes, when data belongs to task
+                    return bsequence, status, payload
+                # Otherwise, tries to find payload owner's task
+                another_task = self._todo.pop(bsequence, None)
+                if another_task:
+                    # Binds parsed output to task
+                    another_task._RETURNING_ = bsequence, status, payload
+                    # And closes it
+                    another_task.cancel()
+
+            # Enables other concurrent tasks
+            await asyncio.sleep(0)
+
+    async def _receive_dispatched(
+        self,
+        asequence: UUID
+    ) -> Tuple[UUID, int, Any]:
+        """
+        It's beginning of self._receive_dispatched_.
+        It wraps the coroutine in a task and waits for that task to complete,
+        but another concurrent task can cancel the task
+        and return the required payload in the _RETURNING_ attribute.
+        """
+        task = asyncio.create_task(self._receive_dispatched_(asequence))
+        try:
+            return await task
+        except asyncio.CancelledError:
+            return task._RETURNING_
 
     async def _dispatch(
         self,
-        method: Literal['J', 'L', 'C', 'P'],
+        method: AVAILABLE_WAMP_METHODS,
         URI: str = None,
         A: Iterable = tuple(),
         K: Mapping = {}
     ) -> Any:
+        """
+        """
         if not self._wampc_joined:
-            raise
+            raise WAMPClientHasNotJoinedYet()
 
         async with self._write_lock:
             asequence = self._get_message_sequence()
@@ -218,79 +274,79 @@ class WAMPBridge:
             command = self._generate(asequence, method, URI, A, K)
             self._tx.write(command)
 
-        async def f():
-            async with self._read_lock:
-                while True:
-                    output = await self._rx.readline()
-                    bsequence, status, returning = self._parse(output)
-                    if asequence == bsequence:
-                        return bsequence, status, returning
-                    task: asyncio.Task = self._map.pop(bsequence, None)
-                    if task is None:
-                        continue
-                    task._returning_ = bsequence, status, returning
-                    task.cancel()
-
-        task = asyncio.create_task(f())
-        self._map[asequence] = task
-        try:
-            bsequence, status, returning = await task
-        except asyncio.CancelledError:
-            bsequence, status, returning = task._returning_
+        bsequence, status, payload = await self._receive_dispatched(asequence)
+        if asequence != bsequence:
+            raise
 
         if status == 0:
-            if returning is None:
-                returning = {}
+            if payload is None:
+                payload = {}
 
-            A = returning.get('args', [])
-            K = returning.get('kwargs', {})
+            A = payload.get('args', [])
+            K = payload.get('kwargs', {})
             raise ApplicationError(
-                returning.get('error', 'wamp.error'),
+                payload.get('error', 'wamp.error'),
                 *A,
-                enc_algo=returning.get('enc_algo', None),
-                callee=returning.get('callee', None),
-                callee_authid=returning.get('callee_authid', None),
-                callee_authrole=returning.get('callee_authrole', None),
-                forward_for=returning.get('forward_for', None),
+                enc_algo=payload.get('enc_algo', None),
+                callee=payload.get('callee', None),
+                callee_authid=payload.get('callee_authid', None),
+                callee_authrole=payload.get('callee_authrole', None),
+                forward_for=payload.get('forward_for', None),
                 **K
             )
 
-        return returning
+        return payload
 
-    async def _check_pipe(
+    async def _listen_wampc_heartbeat(
         self
     ):
-        response = await self._rx.readline()
-        if response != b'joined\n':
-            raise
-        self._wampc_joined = True
+        if not self._wampc_joined:
+            response = await self._rx.readline()
+            if response != b'joined\n':
+                raise
+            self._wampc_joined = True
 
     def _spawn_child_process(
         self,
         pipe: AioDuplex
     ):
         """
+        Spawns child process
         """
-        self._process = Process(target=run_wamp_client, args=(pipe, ))
+        self._process = Process(
+            target=run_wamp_client,
+            args=(pipe, self._router_url, self._wampc_session)
+        )
         self._process.start()
 
     async def join(
-        self
+        self,
+        realm: str,
+        authid: str = None,
+        authrole: str = None,
+        authmethods: Iterable[str] = None,
+        authextra: Any = None,
+        resumable: str = None,
+        resume_session: str = None,
+        resume_token: str = None,
     ):
         """
+        Creates async duplex pipes
+        To exchange messages between two processes
         """
         self._pipe, b = aioduplex()
         self._rx, self._tx = await self._pipe.open()
         b.detach()
         self._spawn_child_process(b)
-        await self._check_pipe()
+        await self._listen_wampc_heartbeat()
 
     async def leave(
         self
     ):
         """
+        
         """
-        response = await self._dispatch('L')
+        response = await self._dispatch(WAMP_METHOD_LEAVE)
         await self._pipe.close()
         self._process.join()
         return response
@@ -301,12 +357,7 @@ class WAMPBridge:
         *A,
         **K
     ):
-        """
-        """
-        a = datetime.now()
-        response = await self._dispatch('C', URI, A, K)
-        print(datetime.now() - a, 'C')
-        return response
+        return await self._dispatch(WAMP_METHOD_CALL, URI, A, K)
 
     async def publish(
         self,
@@ -314,12 +365,7 @@ class WAMPBridge:
         *A,
         **K
     ):
-        """
-        """
-        a = datetime.now()
-        response = await self._dispatch('P', URI, A, K)
-        print(datetime.now() - a, 'P')
-        return response
+        return await self._dispatch(WAMP_METHOD_PUBLISH, URI, A, K)
 
 
 class WAMPClient:
@@ -327,28 +373,47 @@ class WAMPClient:
     """
 
     _bridge: WAMPBridge
-    # _settings: WAMPClientSettings
+    _urip: Union[str, None]
 
     def __init__(
         self,
-        *A,
-        **K
+        router_url: str,
+        factory: WAMPClientSession = WAMPClientSession,
+        uri_prefix: str = None
     ):
-        self._bridge = WAMPBridge()
-        # self._settings = WAMPClientSettings(*A, **K)
+        self._bridge = WAMPBridge(router_url, factory)
+        self._urip = uri_prefix
 
     def onChallange(
-        self
+        self,
+        challenge
     ):
         """
         """
 
     async def join(
-        self
+        self,
+        realm: str,
+        authid: str = None,
+        authrole: str = None,
+        authmethods: Iterable[str] = None,
+        authextra: Any = None,
+        resumable: str = None,
+        resume_session: str = None,
+        resume_token: str = None,
     ):
         """
         """
-        return await self._bridge.join()
+        return await self._bridge.join(
+            realm=realm,
+            authmethods=authid,
+            authid=authrole,
+            authrole=authmethods,
+            authextra=authextra,
+            resumable=resumable,
+            resume_session=resume_session,
+            resume_token=resume_token
+        )
 
     async def leave(
         self
@@ -376,51 +441,4 @@ class WAMPClient:
         """
         """
         return await self._bridge.publish(URI, *A, **K)
-
-
-async def main():
-    client = WAMPClient()
-    await client.join()
-    # await asyncio.sleep(1)
-    # import threading
-    # print(threading.active_count())
-    print(await asyncio.gather(
-        client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.publish('com.example.hello', 1, 2, 3, {0:'\n'}, hello='world'),
-        # client.call('com.example.pow', 1, 2, 3, {0:'\n'}, hello='world')
-        return_exceptions=True
-    ))
-    await client.leave()
-    print('thats all')
-
-
-asyncio.run(main())
 

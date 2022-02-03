@@ -98,7 +98,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
             authextra=self._settings.authextra,
             resumable=self._settings.resumable,
             resume_session=self._settings.resume_session,
-            resume_token=self._settings.resume_token,
+            resume_token=self._settings.resume_token
         )
 
     async def onJoin(

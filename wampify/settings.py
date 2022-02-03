@@ -22,30 +22,17 @@ class WampifySessionSettings(BaseModel):
     """
 
     realm: str
-    factory: Any = None
     authid: str = None
     authrole: str = None
     authmethods: List[str] = None
     authextra: Any = None
+    onChallange: Callable = None
     resumable: str = None
     resume_session: str = None
     resume_token: str = None
     show_registered = False
     show_subscribed = False
-
-
-class WAMPClientSettings(BaseModel):
-    """
-    """
-
-    realm: str
-    authid: str = None
-    authrole: str = None
-    authmethods: List[str] = None
-    authextra: Any = None
-    resumable: str = None
-    resume_session: str = None
-    resume_token: str = None
+    factory: Any = None
 
 
 class WampifySettings(BaseModel):

@@ -100,3 +100,8 @@ class FactoryDoesNotExist(SomethingWentWrong):
     """
     """
 
+
+class WAMPClientHasNotJoinedYet(SomethingWentWrong):
+    """
+    """
+
