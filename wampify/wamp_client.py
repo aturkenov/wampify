@@ -1,5 +1,7 @@
 from .aiopipe import aioduplex, AioDuplex
-from .error_list import WAMPClientHasNotJoinedYet
+from .error_list import (
+    WAMPClientHasNotJoinedYet
+)
 from autobahn.wamp import ISession, ApplicationError
 from autobahn.asyncio.wamp import (
     ApplicationSession as AsyncioApplicationSession,
@@ -21,6 +23,7 @@ WAMP_METHOD_PUBLISH = 'P'
 AVAILABLE_WAMP_METHODS = Literal['L', 'C', 'P']
 
 
+# TODO Rename
 class WAMPBridgeOutside:
 
     _pipe: AioDuplex
@@ -39,7 +42,7 @@ class WAMPBridgeOutside:
         """
         """
         command = json.loads(payload)
-        sequence = command['sequence']
+        sequence = UUID(command['sequence'])
         method = command['method']
         URI = command['URI']
         A = command['A']
@@ -76,37 +79,50 @@ class WAMPBridgeOutside:
             option=(json.OPT_NON_STR_KEYS | json.OPT_APPEND_NEWLINE)
         )
 
+    async def _dispatch(
+        self,
+        sequence: UUID,
+        method: AVAILABLE_WAMP_METHODS,
+        URI: str,
+        A: Iterable,
+        K: Mapping
+    ) -> Any:
+        try:
+            if method == WAMP_METHOD_CALL:
+                returning = await self._wamps.call(URI, *A, **K)
+            elif method == WAMP_METHOD_PUBLISH:
+                returning = self._wamps.publish(URI, *A, **K)
+            elif method == WAMP_METHOD_LEAVE:
+                # await self._pipe.close()
+                returning = self._wamps.leave(*A, **K)
+            else: ...
+                # TODO
+        except ApplicationError as e:
+            output = self._generate_error(sequence, e)
+        else:
+            output = self._generate_answer(sequence, returning)
+        return output
+
     async def _listen_pipe(
         self
     ):
-        async def f(inpayload):
+        async def onCommand(
+            command: bytes
+        ):
             try:
-                sequence, method, URI, A, K = self._parse(inpayload)
+                sequence, method, URI, A, K = self._parse(command)
             except:
-                self._tx.write(b'something_went_wrong\n')
+                # TODO required at least to parse message sequence
+                self._tx.write(
+                    b'{"sequence":"00000000-0000-0000-0000-000000000000","status":-1,"paylaod":"could_not_parse_command"}\n'
+                )
             else:
-                try:
-                    if method == 'C':
-                        returning = await self._wamps.call(URI, *A, **K)
-                    elif method == 'P':
-                        returning = self._wamps.publish(URI, *A, **K)
-                    elif method == 'L':
-                        returning = self._wamps.leave(URI, *A, **K)
-                        return False
-                    else:
-                        raise 
-                except ApplicationError as e:
-                    output = self._generate_error(sequence, e)
-                else:
-                    output = self._generate_answer(sequence, returning)
+                output = await self._dispatch(sequence, method, URI, A, K)
                 self._tx.write(output)
-            return True
 
         while True:
-            line = await self._rx.readline()
-            asyncio.create_task(f(line))
-
-        await self._pipe.close()
+            command = await self._rx.readline()
+            asyncio.create_task(onCommand(command))
 
     def _send_joined(
         self
@@ -136,21 +152,24 @@ class WAMPClientSession(AsyncioApplicationSession):
 def run_wamp_client(
     pipe: AioDuplex,
     router_url: str,
+    realm: str,
     wampc_session: WAMPClientSession
 ):
-    async def arun():
+    async def async_run():
+        # 
         bridge = WAMPBridgeOutside(pipe)
         wampc_session._bridge = bridge
-        runner = AsyncioApplicationRunner(router_url, 'example')
+        runner = AsyncioApplicationRunner(router_url, realm)
         _ = runner.run(wampc_session, start_loop=False)
         await asyncio.create_task(_)
         await bridge.start()
 
     loop = asyncio.new_event_loop()
-    loop.run_until_complete(arun())
+    loop.run_until_complete(async_run())
     loop.run_forever()
 
 
+# TODO Rename
 class WAMPBridge:
     """
     """
@@ -168,9 +187,11 @@ class WAMPBridge:
     def __init__(
         self,
         router_url: str,
+        realm: str,
         wampc_session: WAMPClientSession
     ):
         self._router_url = router_url
+        self._realm = realm
         self._wampc_session = wampc_session
         self._sequence = 0
         self._wampc_joined = False
@@ -223,8 +244,8 @@ class WAMPBridge:
             # Locks from concurrent execution
             async with self._read_lock:
                 # Waiting for data to be received
-                line = await self._rx.readline()
-                bsequence, status, payload = self._parse(line)
+                answer = await self._rx.readline()
+                bsequence, status, payload = self._parse(answer)
                 if asequence == bsequence:
                     # It executes, when data belongs to task
                     return bsequence, status, payload
@@ -276,6 +297,7 @@ class WAMPBridge:
 
         bsequence, status, payload = await self._receive_dispatched(asequence)
         if asequence != bsequence:
+            # TODO 
             raise
 
         if status == 0:
@@ -303,6 +325,7 @@ class WAMPBridge:
         if not self._wampc_joined:
             response = await self._rx.readline()
             if response != b'joined\n':
+                # TODO
                 raise
             self._wampc_joined = True
 
@@ -315,20 +338,19 @@ class WAMPBridge:
         """
         self._process = Process(
             target=run_wamp_client,
-            args=(pipe, self._router_url, self._wampc_session)
+            args=(pipe, self._router_url, self._realm, self._wampc_session)
         )
         self._process.start()
 
     async def join(
         self,
-        realm: str,
         authid: str = None,
         authrole: str = None,
         authmethods: Iterable[str] = None,
         authextra: Any = None,
         resumable: str = None,
         resume_session: str = None,
-        resume_token: str = None,
+        resume_token: str = None
     ):
         """
         Creates async duplex pipes
@@ -336,17 +358,20 @@ class WAMPBridge:
         """
         self._pipe, b = aioduplex()
         self._rx, self._tx = await self._pipe.open()
+        # Detaches b pipe from current process
         b.detach()
         self._spawn_child_process(b)
         await self._listen_wampc_heartbeat()
 
     async def leave(
-        self
+        self,
+        *A,
+        **K
     ):
         """
         
         """
-        response = await self._dispatch(WAMP_METHOD_LEAVE)
+        response = await self._dispatch(WAMP_METHOD_LEAVE, None, A, K)
         await self._pipe.close()
         self._process.join()
         return response
@@ -378,22 +403,15 @@ class WAMPClient:
     def __init__(
         self,
         router_url: str,
+        realm: str,
+        uri_prefix: str = None,
         factory: WAMPClientSession = WAMPClientSession,
-        uri_prefix: str = None
     ):
-        self._bridge = WAMPBridge(router_url, factory)
+        self._bridge = WAMPBridge(router_url, realm, factory)
         self._urip = uri_prefix
-
-    def onChallange(
-        self,
-        challenge
-    ):
-        """
-        """
 
     async def join(
         self,
-        realm: str,
         authid: str = None,
         authrole: str = None,
         authmethods: Iterable[str] = None,
@@ -405,7 +423,6 @@ class WAMPClient:
         """
         """
         return await self._bridge.join(
-            realm=realm,
             authmethods=authid,
             authid=authrole,
             authrole=authmethods,
@@ -416,11 +433,13 @@ class WAMPClient:
         )
 
     async def leave(
-        self
+        self,
+        reason=None,
+        message=None
     ):
         """
         """
-        return await self._bridge.leave()
+        return await self._bridge.leave(reason, message)
 
     async def call(
         self,

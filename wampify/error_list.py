@@ -105,3 +105,7 @@ class WAMPClientHasNotJoinedYet(SomethingWentWrong):
     """
     """
 
+class WAMPCouldNotParseMessage(SomethingWentWrong):
+    """
+    """
+
