@@ -69,42 +69,42 @@ class Consumer:
             option=(json.OPT_NON_STR_KEYS|json.OPT_APPEND_NEWLINE)
         )
 
-    async def _(
-        self,
-        i: int,
-        method: str,
-        URI: str,
-        A: Iterable,
-        K: Mapping
-    ) -> Any:
-        """
-        """
-        try:
-            payload = None
-            if method == WAMP_METHOD_CALL:
-                payload = await self._wamps.call(URI, *A, **K)
-            elif method == WAMP_METHOD_PUBLISH:
-                payload = self._wamps.publish(URI, *A, **K)
-            elif method == WAMP_METHOD_LEAVE:
-                ...
-        except ApplicationError as exception:
-            return self._encode_error(i, exception)
-        else:
-            return self._encode_answer(i, payload)
-
     async def on_message(
         self,
         r: asyncio.StreamReader,
         w: asyncio.StreamWriter
     ):
+        async def _(
+            i: int,
+            method: str,
+            URI: str,
+            A: Iterable,
+            K: Mapping
+        ) -> Any:
+            """
+            """
+            try:
+                payload = None
+                if method == WAMP_METHOD_CALL:
+                    payload = await self._wamps.call(URI, *A, **K)
+                elif method == WAMP_METHOD_PUBLISH:
+                    payload = self._wamps.publish(URI, *A, **K)
+                elif method == WAMP_METHOD_LEAVE:
+                    ...
+            except ApplicationError as exception:
+                return self._encode_error(i, exception)
+            else:
+                return self._encode_answer(i, payload)
+
         encoded = await r.readline()
         try:
             i, method, URI, A, K = self._decode(encoded)
         except:
             ...
         else:
-            returning = await self._(i, method, URI, A, K)
+            returning = await _(i, method, URI, A, K)
             w.write(returning)
+            await w.drain()
 
     async def consume(
         self,
@@ -119,6 +119,8 @@ class Producer:
     _r: asyncio.StreamReader
     _w: asyncio.StreamWriter
     _read_lock: asyncio.Lock
+    _write_lock: asyncio.Lock
+    _todo: Mapping[int, asyncio.Task]
 
     def __init__(
         self,
@@ -127,6 +129,7 @@ class Producer:
         self._path = path
         self._i = 0
         self._read_lock = asyncio.Lock()
+        self._write_lock = asyncio.Lock()
         self._todo = {}
 
     async def __aini__(
@@ -224,12 +227,14 @@ class Producer:
         A: Iterable = [],
         K: Mapping = {}
     ) -> Any:
-        i = self.get_message_number()
-        msg = self._encode(i, URI, method, A, K)
-        self._increase_message_number()
-        self._w.write(msg)
+        async with self._write_lock:
+            ai = self.get_message_number()
+            msg = self._encode(ai, method, URI, A, K)
+            self._increase_message_number()
+            self._w.write(msg)
+            await self._w.drain()
 
-        bsequence, status, payload = await self._receive_answer(i)
+        bi, status, payload = await self._receive_answer(ai)
 
         if status == 0:
             if payload is None:
@@ -306,19 +311,4 @@ class WAMPClient:
         return await self._producer.produce(
             WAMP_METHOD_PUBLISH, topic, A=A, K=K
         )
-
-
-async def amain():
-    client = await WAMPClient('wampc')
-    print(await asyncio.gather(*[client.call('com.example.hello') for i in range(1000)]))
-
-
-# def main():
-#     loop = asyncio.new_event_loop()
-#     loop.create_task(Consumer().consume('wampc'))
-#     loop.run_forever()
-
-
-# main()
-asyncio.run(amain())
 

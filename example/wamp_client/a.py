@@ -13,6 +13,9 @@ wampify = Wampify(
 )
 
 
+wampify.add_wampc('a')
+
+
 @wampify.register
 async def pow(x: float = 1):
     return x ** 2

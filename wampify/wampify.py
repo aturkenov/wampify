@@ -1,4 +1,6 @@
 from .wamp import WAMPShoppingCart
+from .wamp_client import *
+from .signal_manager import wamps_signals
 from .middleware import BaseMiddleware
 from .entrypoint import (
     CallEntrypoint, PublishEntrypoint
@@ -42,6 +44,18 @@ class Wampify:
         self.wamps_factory._cart = self._cart
         background_task.mount(self)
         logger.mount(self)
+
+    def add_wampc(
+        self,
+        path: str
+    ) -> None:
+        @wamps_signals.on
+        async def joined(
+            session,
+            details
+        ):
+            consumer = Consumer(session)
+            await consumer.consume(path)
 
     def add_middleware(
         self,
