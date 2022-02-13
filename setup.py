@@ -20,8 +20,9 @@ setuptools.setup(
     },
     classifiers=[
         'Typing :: Typed',
-        'Framework :: Wampify',
-        'Topic :: Internet :: WAMP',
+        'Topic :: Internet',
+        'Topic :: Communications',
+        'Framework :: AsyncIO',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',
