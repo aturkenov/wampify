@@ -29,7 +29,7 @@ wampify.add_middleware(TestMiddleware)
 wampify.add_middleware(TimeoutMiddleware)
 
 
-@wampify.register('long', options={ 'validate_endpoint': False })
+@wampify.register('long')
 async def long():
     await asyncio.sleep(2)
 

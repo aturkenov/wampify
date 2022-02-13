@@ -1,16 +1,11 @@
-from wampify.requests import *
-from wampify.exceptions import *
-from typing import *
-from typing_extensions import *
+from wampify.requests import BaseRequest
+from wampify.exceptions import MiddlewareNotBoundError
+from typing import Any
 
 
 class BaseMiddleware:
     """
     """
-
-    class Settings:
-        """
-        """
 
     _next: 'BaseMiddleware'
 
@@ -24,7 +19,7 @@ class BaseMiddleware:
     async def call_next(
         self,
         request: BaseRequest
-    ) -> Coroutine:
+    ) -> Any:
         """
         Calls next chain
         """
@@ -40,6 +35,6 @@ class BaseMiddleware:
     async def __call__(
         self,
         request: BaseRequest
-    ) -> Coroutine:
+    ) -> Any:
         return await self.handle(request)
 
