@@ -19,7 +19,6 @@ Wampify built on top of [autobahn library](https://autobahn.readthedocs.io/en/la
 - [High performance](https://github.com/aturkenov/wampify/tree/main/example/benchmark)
 - [Remote Procedure Calls (RPC)](https://github.com/aturkenov/wampify#remote-procedure-call-rpc) and [Publish & Subscribe (PubSub)](https://github.com/aturkenov/wampify#publish--subscribe-pubsub)
 - [Payload validation](https://pydantic-docs.helpmanual.io/usage/validation_decorator/) based on [pydantic](https://pydantic-docs.helpmanual.io)
-- [Serialization](https://github.com/aturkenov/wampify#serialization) (default [binary orjson](https://github.com/ijl/orjson))
 - [Signals (WAMP session joined, WAMP session leaved, etc...)](https://github.com/aturkenov/wampify#signals)
 - [Background tasks](https://github.com/aturkenov/wampify#backgroud-tasks)
 - [Custom middlewares](https://github.com/aturkenov/wampify#custom-middlewares)
@@ -52,7 +51,7 @@ wampify = Wampify(
     router_url='ws://127.0.0.1:8080/private',
     wamps={
         'realm': 'example',
-        'authid': None,
+        'authid': 'microservice',
         'authmethods': ['anonymous'],
         'authrole': 'private',
         'show_registered': True,
