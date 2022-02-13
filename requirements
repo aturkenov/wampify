@@ -3,7 +3,6 @@ cffi==1.15.0
 cryptography==36.0.0
 hyperlink==21.0.0
 idna==3.3
-orjson==3.6.5
 pycparser==2.21
 pydantic==1.8.2
 txaio==21.2.1
