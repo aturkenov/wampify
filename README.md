@@ -147,7 +147,7 @@ async def hello(name: str = 'Anonymous'):
 ## Signals
 
 ```python
-from wampify.signal_manager import wamps_signals
+from wampify.signals import wamps_signals
 
 @wamps_signals.on
 async def joined(): ...
@@ -162,7 +162,7 @@ async def leaved(): ...
 ## How to connect SQLAlchemy?
 
 ```python
-from wampify.signal_manager import entrypoint_signals
+from wampify.signals import entrypoint_signals
 
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
