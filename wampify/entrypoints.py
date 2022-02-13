@@ -89,8 +89,7 @@ class SharedEntrypoint(Entrypoint):
     def _build_responsibility_chain(
         self,
         middlewares: List[BaseMiddleware],
-        endpoint: SharedEndpoint,
-        settings: Mapping = None
+        endpoint: SharedEndpoint
     ) -> BaseMiddleware:
         """
         Build chain of responsibility from passed middlewares
@@ -101,7 +100,7 @@ class SharedEntrypoint(Entrypoint):
 
         self._middleware, it = None, None
         for m in middlewares:
-            m = m(settings)
+            m = m()
 
             if self._middleware is None and it is None:
                 self._middleware, it = m, m

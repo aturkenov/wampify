@@ -6,13 +6,10 @@ class ClientSession(ApplicationSession):
     async def onJoin(self, details):
         print('Session was joined')
 
-        # Try to send our name
+        # This procedure never executed
         answer = await self.call(
-            'com.example.hello',
-            name='wampify'
+            'com.example.long'
         )
-        print(answer)
-        # >>> Hello, wampify!
 
 
 if __name__ == '__main__':

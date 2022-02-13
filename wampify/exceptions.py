@@ -75,6 +75,14 @@ class NotFound(BaseError):
     cause = 'The requested object was not found.'
 
 
+class TimeoutExpired(BaseError):
+    """
+    408
+    """
+
+    name = 'timeout_expired'
+    cause = 'Request timeout expired'
+
 class SomethingWentWrong(BaseError):
     """
     500
@@ -104,6 +112,7 @@ class FactoryDoesNotExist(SomethingWentWrong):
 class WAMPClientHasNotJoinedYet(SomethingWentWrong):
     """
     """
+
 
 class WAMPCouldNotParseMessage(SomethingWentWrong):
     """

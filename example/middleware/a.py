@@ -1,5 +1,7 @@
+import asyncio
 from wampify import Wampify
 from wampify.middleware import BaseMiddleware
+from wampify.middleware.timeout import TimeoutMiddleware
 
 
 wampify = Wampify(
@@ -14,9 +16,7 @@ wampify = Wampify(
 )
 
 
-class CustomMiddleware(BaseMiddleware):
-
-    name = 'custom'
+class TestMiddleware(BaseMiddleware):
 
     async def handle(
         self,
@@ -25,13 +25,13 @@ class CustomMiddleware(BaseMiddleware):
         print(f'client {request.client.i} sent request')
         return await self.call_next(request)
 
+wampify.add_middleware(TestMiddleware)
+wampify.add_middleware(TimeoutMiddleware)
 
-wampify.add_middleware(CustomMiddleware)
 
-
-@wampify.register
-async def hello(name: str = 'anonymous'):
-    return f'Hello, {name}!'
+@wampify.register('long', options={ 'validate_endpoint': False })
+async def long():
+    await asyncio.sleep(2)
 
 
 if __name__ == '__main__':

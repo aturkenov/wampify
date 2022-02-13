@@ -1,49 +1,18 @@
-from pydantic import BaseModel
 from wampify.requests import *
 from wampify.exceptions import *
 from typing import *
 from typing_extensions import *
 
 
-class MiddlewareSettings(BaseModel):
-    """
-    """
-
-    disabled = False
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
 class BaseMiddleware:
     """
     """
 
-    name: str
-    settings: MiddlewareSettings
-
-    class DefaultSettings(MiddlewareSettings):
+    class Settings:
         """
         """
 
     _next: 'BaseMiddleware'
-
-    def __init__(
-        self,
-        new_settings: Mapping[str, Any] = None
-    ) -> None:
-        if new_settings != None:
-            self._update_settings(new_settings)
-
-    def _update_settings(
-        self,
-        new_settings: Mapping 
-    ) -> None:
-        """
-        Updates settings
-        """
-        rchain_settings = new_settings.get(self.name, {})
-        self.settings = self.DefaultSettings(**rchain_settings)
 
     @classmethod
     def set_next(
