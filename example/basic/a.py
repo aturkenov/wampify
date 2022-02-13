@@ -1,12 +1,20 @@
 from wampify import Wampify
 
 
+def wamps_on_challenge(session, challange):
+    return 'secret'
+
+
 wampify = Wampify(
     debug=False,
     uri_prefix='com.example',
     router_url='ws://127.0.0.1:8080/private',
     wamps={
         'realm': 'example',
+        'authid': 'a',
+        'authrole': 'private',
+        'authmethods': ['ticket'],
+        'on_challenge': wamps_on_challenge,
         'show_registered': True,
         'show_subscribed': True
     }

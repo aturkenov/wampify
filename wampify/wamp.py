@@ -1,11 +1,11 @@
-from .signal_manager import wamps_signals
+from .signals import wamps_signals
 from .settings import WampifySessionSettings
 from autobahn.asyncio.wamp import ApplicationSession as AsyncioApplicationSession
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
 from typing import Union, List, Tuple, Callable, Mapping, Any
 
 
-class WAMPShoppingCart:
+class WAMPBucket:
     """
     """
 
@@ -82,7 +82,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
     """
     """
 
-    _cart: WAMPShoppingCart
+    _bucket: WAMPBucket
     _settings: WampifySessionSettings
 
     async def onConnect(
@@ -98,7 +98,7 @@ class AsyncioWampifySession(AsyncioApplicationSession):
             authextra=self._settings.authextra,
             resumable=self._settings.resumable,
             resume_session=self._settings.resume_session,
-            resume_token=self._settings.resume_token,
+            resume_token=self._settings.resume_token
         )
 
     async def onJoin(
@@ -107,12 +107,12 @@ class AsyncioWampifySession(AsyncioApplicationSession):
     ):
         """
         """
-        for I, F, O in self._cart.get_registered():
+        for I, F, O in self._bucket.get_registered():
             await self.register(F, I, RegisterOptions(**O))
             if self._settings.show_registered:
                 print(f'{I} registered')
 
-        for I, F, O in self._cart.get_subscribed():
+        for I, F, O in self._bucket.get_subscribed():
             await self.subscribe(F, I, SubscribeOptions(**O))
             if self._settings.show_registered:
                 print(f'{I} subscribed')

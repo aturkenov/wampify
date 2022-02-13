@@ -1,5 +1,5 @@
 from wampify import Wampify
-from wampify.signal_manager import wamps_signals
+from wampify.signals import wamps_signals
 from autobahn.wamp import ISession
 
 

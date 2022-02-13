@@ -1,5 +1,5 @@
 from wampify import Wampify
-from wampify.error_list import AuthenticationFailed
+from wampify.exceptions import AuthenticationFailed
 
 
 wampify = Wampify(

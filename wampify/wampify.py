@@ -1,6 +1,6 @@
-from .wamp import WAMPShoppingCart
+from .wamp import WAMPBucket
 from .middleware import BaseMiddleware
-from .entrypoint import (
+from .entrypoints import (
     CallEntrypoint, PublishEntrypoint
 )
 from .settings import (
@@ -26,7 +26,7 @@ class Wampify:
     _wamps: Union[WAMPIS, None]
     _middlewares: List[BaseMiddleware]
     _serializers: List[Callable]
-    _cart: WAMPShoppingCart
+    _bucket: WAMPBucket
 
     def __init__(
         self,
@@ -38,8 +38,9 @@ class Wampify:
         self.settings = get_validated_settings(**KW)
         self.wamps_factory = self.settings.wamps.factory
         self.wamps_factory._settings = self.settings.wamps
-        self._cart = WAMPShoppingCart(self.settings.uri_prefix)
-        self.wamps_factory._cart = self._cart
+        self._bucket = WAMPBucket(self.settings.uri_prefix)
+        self.wamps_factory._bucket = self._bucket
+        self.wamps_factory.onChallenge = self.settings.wamps.on_challenge
         background_task.mount(self)
         logger.mount(self)
 
@@ -95,7 +96,7 @@ class Wampify:
         ):
             return await entrypoint(A, K, _CALL_DETAILS_)
 
-        URI = self._cart.add_register(
+        URI = self._bucket.add_register(
             path, on_call, {'details_arg': '_CALL_DETAILS_'}
         )
         return procedure
@@ -130,7 +131,7 @@ class Wampify:
         ):
             return await entrypoint(A, K, _PUBLISH_DETAILS_)
 
-        URI = self._cart.add_subscribe(
+        URI = self._bucket.add_subscribe(
             path, on_publish, {'details_arg': '_PUBLISH_DETAILS_'}
         )
         return procedure

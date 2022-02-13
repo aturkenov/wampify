@@ -17,21 +17,25 @@ class EndpointOptions(BaseModel):
     validate_payload = True
 
 
+def wamps_on_challenge(session, challenge): ...
+
+
 class WampifySessionSettings(BaseModel):
     """
     """
 
     realm: str
-    factory: Any = None
     authid: str = None
     authrole: str = None
     authmethods: List[str] = None
     authextra: Any = None
+    on_challenge: Callable = wamps_on_challenge
     resumable: str = None
     resume_session: str = None
     resume_token: str = None
     show_registered = False
     show_subscribed = False
+    factory: Any = None
 
 
 class WampifySettings(BaseModel):
