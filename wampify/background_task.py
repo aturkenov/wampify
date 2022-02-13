@@ -1,4 +1,4 @@
-from .signal_manager import entrypoint_signals
+from .signals import entrypoint_signals
 from typing import List, Tuple, Callable, Iterable, Mapping
 
 
@@ -33,7 +33,7 @@ def mount(
 ) -> None:
     import asyncio
     from multiprocessing import Process
-    from .entrypoint import Entrypoint
+    from .entrypoints import Entrypoint
 
     @entrypoint_signals.on
     def opened(

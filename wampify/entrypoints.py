@@ -1,13 +1,13 @@
 from .story import *
-from .request import (
+from .requests import (
     BaseRequest, CallRequest, PublishRequest
 )
-from .endpoint import (
+from .endpoints import (
     Endpoint, SharedEndpoint, RegisterEndpoint, SubscribeEndpoint
 )
 from .middleware import BaseMiddleware
-from .signal_manager import entrypoint_signals
-from .error_list import SomethingWentWrong
+from .signals import entrypoint_signals
+from .exceptions import SomethingWentWrong
 from .settings import WampifySettings, EndpointOptions
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError

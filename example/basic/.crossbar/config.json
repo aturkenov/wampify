@@ -76,9 +76,14 @@
                         "private": {
                             "type": "websocket",
                             "auth": {
-                                "anonymous": {
-                                   "type": "static",
-                                   "role": "private"
+                                "ticket": {
+                                    "type": "static",
+                                    "principals": {
+                                        "a": {
+                                            "ticket": "secret",
+                                            "role": "private"
+                                        }
+                                    }
                                 }
                             }
                         }

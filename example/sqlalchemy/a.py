@@ -1,6 +1,6 @@
 from wampify import Wampify
 from wampify.story import *
-from wampify.signal_manager import entrypoint_signals
+from wampify.signals import entrypoint_signals
 
 
 wampify = Wampify(

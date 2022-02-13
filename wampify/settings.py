@@ -17,6 +17,9 @@ class EndpointOptions(BaseModel):
     validate_payload = True
 
 
+def wamps_on_challenge(session, challenge): ...
+
+
 class WampifySessionSettings(BaseModel):
     """
     """
@@ -26,7 +29,7 @@ class WampifySessionSettings(BaseModel):
     authrole: str = None
     authmethods: List[str] = None
     authextra: Any = None
-    onChallange: Callable = None
+    on_challenge: Callable = wamps_on_challenge
     resumable: str = None
     resume_session: str = None
     resume_token: str = None

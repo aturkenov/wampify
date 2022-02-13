@@ -1,6 +1,7 @@
 import logging
-from datetime import datetime
-from .signal_manager import wamps_signals, entrypoint_signals
+from datetime import datetime, timedelta
+from .signals import wamps_signals, entrypoint_signals
+from typing import Any
 
 
 logger = logging.getLogger('wampify')
@@ -9,7 +10,44 @@ logger = logging.getLogger('wampify')
 def mount(
     wampify
 ) -> None:
-    from .request import CallRequest, PublishRequest
+    from .story import Story
+    from .requests import CallRequest, PublishRequest
+
+    def calculate_runtime(
+        story: Story
+    ) -> str:
+        d = datetime.utcnow() - story._request_.sent_time
+
+        if d >= timedelta(hours=1):
+            return f'{d.seconds // 3600}H'
+        if d >= timedelta(minutes=1):
+            return f'{d.seconds // 60}M'
+        if d >= timedelta(seconds=1):
+            return f'{d.seconds}S'
+        if d >= timedelta(milliseconds=1):
+            return f'{d.microseconds // 1000}m'
+        if d >= timedelta(microseconds=1):
+            return f'{d.microseconds}ms'
+        return f'{d}?'
+
+    def get_method_name(
+        story: Story
+    ) -> str:
+        if type(story._request_) == CallRequest:
+            return 'RPC'
+        if type(story._request_) == PublishRequest:
+            return 'PUBLISH'
+        return 'UNDEFINED'
+
+    def get_client_name(
+        story: Story
+    ) -> Any:
+        return story._request_.client.i
+
+    def get_request_arguments(
+        story: Story
+    ) -> str:
+        return f'{story._request_.A}, {story._request_.K}'
 
     @wamps_signals.on
     def joined(
@@ -27,56 +65,29 @@ def mount(
 
     @entrypoint_signals.on
     def opened(
-        story
+        story: Story
     ): ...
 
     @entrypoint_signals.on
     def raised(
-        story,
+        story: Story,
         e
     ):
-        def calculate_runtime() -> str:
-            return str(datetime.utcnow() - story._request_.sent_time)
-
-        def get_method() -> str:
-            if type(story._request_) == CallRequest:
-                return 'RPC'
-            if type(story._request_) == PublishRequest:
-                return 'PUBLISH'
-            return 'UNDEFINED'
-
-        def get_client():
-            return str(story._request_.client.i)
-
-        def get_request_arguments():
-            return str(story._request_.A) + str(story._request_.K)
-
         logger.exception(
-            f'{calculate_runtime()}s '
-            f'{get_client()} '
-            f'{get_method()} {story._request_.URI}({get_request_arguments()}) '
+            f'{calculate_runtime(story)} '
+            f'{get_client_name(story)} '
+            f'{get_method_name(story)} '
+            f'{story._request_.URI} {get_request_arguments(story)}'
         )
 
     @entrypoint_signals.on
     def closed(
-        story
+        story: Story
     ):
-        def calculate_runtime() -> str:
-            return str(datetime.utcnow() - story._request_.sent_time)
-
-        def get_method() -> str:
-            if type(story._request_) == CallRequest:
-                return 'RPC'
-            if type(story._request_) == PublishRequest:
-                return 'PUBLISH'
-            return 'UNDEFINED'
-
-        def get_client():
-            return str(story._request_.client.i)
-
         logger.info(
-            f'{calculate_runtime()}s '
-            f'{get_client()} ;)'
-            f'{get_method()} {story._request_.URI}(...) '
+            f'{calculate_runtime(story)} '
+            f'{get_client_name(story)} ;) '
+            f'{get_method_name(story)} '
+            f'{story._request_.URI}(...) '
         )
 
