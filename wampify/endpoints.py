@@ -1,6 +1,9 @@
-from .exceptions import PayloadValidationError
+from wampify.exceptions import PayloadValidationError
+from wampify.settings import (
+    EndpointOptions, RegisterEndpointOptions, SubscribeEndpointOptions
+)
 from inspect import iscoroutinefunction as is_async
-from pydantic import ValidationError, validate_arguments
+from pydantic import validate_arguments, ValidationError
 from typing import Callable, Iterable, Mapping, Any
 
 
@@ -9,16 +12,19 @@ class Endpoint:
     Endpoint last point to execute procedure
     """
 
+    options: EndpointOptions
     _procedure: Callable
     _is_async: bool
 
     def __init__(
         self,
-        procedure: Callable
+        procedure: Callable,
+        options: Mapping = {}
     ):
         assert callable(procedure), 'procedure must be Callable'
         self._procedure = procedure
         self._is_async = is_async(procedure)
+        self.options = EndpointOptions(**options)
 
     async def execute(
         self,
@@ -45,16 +51,13 @@ class SharedEndpoint(Endpoint):
     """
     """
 
-    _validate_payload: bool
-
     def __init__(
         self,
         procedure: Callable,
-        validate_payload = True,
-        serializers: Iterable[Callable] = []
+        options: EndpointOptions
     ):
-        super().__init__(procedure)
-        if validate_payload:
+        super().__init__(procedure, options)
+        if self.options.validate_payload:
             self._procedure = validate_arguments(self._procedure)
  
     def _get_pydantic_validation_error_content(self, e: ValidationError):

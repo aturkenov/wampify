@@ -6,12 +6,17 @@ from wampify.middleware.timeout import TimeoutMiddleware
 
 wampify = Wampify(
     debug=False,
-    uri_prefix='com.example',
-    router_url='ws://127.0.0.1:8080/private',
+    urip='com.example',
+    router={ 'url': 'ws://127.0.0.1:8080/private' },
     wamps={
         'realm': 'example',
         'show_registered': True,
         'show_subscribed': True
+    },
+    middlewares={
+        'timeout': {
+            'duration': 60 # 1 minute timout
+        }
     }
 )
 
@@ -29,7 +34,9 @@ wampify.add_middleware(TestMiddleware)
 wampify.add_middleware(TimeoutMiddleware)
 
 
-@wampify.register('long')
+@wampify.register(
+    options={'middlewares': {'timeout': {'duration': 1}}}
+)
 async def long():
     await asyncio.sleep(2)
 

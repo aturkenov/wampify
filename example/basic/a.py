@@ -7,8 +7,8 @@ def wamps_on_challenge(session, challange):
 
 wampify = Wampify(
     debug=False,
-    uri_prefix='com.example',
-    router_url='ws://127.0.0.1:8080/private',
+    urip='com.example',
+    router={ 'url': 'ws://127.0.0.1:8080/private' },
     wamps={
         'realm': 'example',
         'authid': 'a',
@@ -27,7 +27,7 @@ async def pow(x: float = 1):
 
 
 @wampify.subscribe
-async def hello(name: str = 'Anonymous'):
+async def hello(name = 'Anonymous'):
     print(f'{name} you are welcome!')
 
 

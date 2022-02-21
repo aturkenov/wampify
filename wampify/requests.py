@@ -1,4 +1,4 @@
-from .client import Client
+from wampify.client import Client
 from autobahn.wamp import CallDetails, EventDetails
 from datetime import datetime
 from typing import Any, Iterable, Mapping

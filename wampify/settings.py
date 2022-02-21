@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Extra 
-from typing import *
+from typing import Callable, Any, List, Mapping
 
 
-class BaseSettings(BaseModel):
+class _BaseModel(BaseModel):
     """
     """
 
@@ -10,17 +10,28 @@ class BaseSettings(BaseModel):
         extra = Extra.allow
 
 
-class EndpointOptions(BaseModel):
+class EndpointOptions(_BaseModel):
     """
     """
 
     validate_payload = True
+    middlewares: Mapping = {}
+
+
+class RegisterEndpointOptions(EndpointOptions):
+    """
+    """
+
+
+class SubscribeEndpointOptions(EndpointOptions):
+    """
+    """
 
 
 def wamps_on_challenge(session, challenge): ...
 
 
-class WampifySessionSettings(BaseModel):
+class WampifySessionSettings(_BaseModel):
     """
     """
 
@@ -38,15 +49,23 @@ class WampifySessionSettings(BaseModel):
     factory: Any = None
 
 
-class WampifySettings(BaseModel):
+class RouterSettings(_BaseModel):
+    """
+    """
+
+    url: str = None
+
+
+class WampifySettings(_BaseModel):
     """
     """
 
     debug = False
-    router_url: str = None
-    start_loop = True
-    uri_prefix: str = None
     wamps: WampifySessionSettings
+    urip: str
+    router: RouterSettings
+    start_loop = True
+    middlewares: Mapping = {}
 
 
 def get_validated_settings(**KW) -> WampifySettings:

@@ -1,4 +1,4 @@
-from .signals import entrypoint_signals
+from wampify.signals import entrypoint_signals
 from typing import List, Tuple, Callable, Iterable, Mapping
 
 
@@ -33,7 +33,7 @@ def mount(
 ) -> None:
     import asyncio
     from multiprocessing import Process
-    from .entrypoints import Entrypoint
+    from wampify.entrypoints import Entrypoint
 
     @entrypoint_signals.on
     def opened(

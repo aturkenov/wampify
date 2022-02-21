@@ -1,7 +1,7 @@
-from .client import Client
-from .background_task import BackgroundTasks
-from .requests import BaseRequest
-from .settings import WampifySettings
+from wampify.client import Client
+from wampify.background_task import BackgroundTasks
+from wampify.requests import BaseRequest
+from wampify.settings import WampifySettings
 from autobahn.wamp import ISession as WAMPIS
 from contextvars import ContextVar
 
