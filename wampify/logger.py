@@ -74,10 +74,11 @@ def mount(
         e
     ):
         logger.exception(
-            f'{calculate_runtime(story)} '
-            f'{get_client_name(story)} '
-            f'{get_method_name(story)} '
-            f'{story._request_.URI} {get_request_arguments(story)}'
+            'omg'
+            # f'{calculate_runtime(story)} '
+            # f'{get_client_name(story)} '
+            # f'{get_method_name(story)} '
+            # f'{story._request_.URI} {get_request_arguments(story)}'
         )
 
     @entrypoint_signals.on
@@ -85,9 +86,10 @@ def mount(
         story: Story
     ):
         logger.info(
-            f'{calculate_runtime(story)} '
-            f'{get_client_name(story)} ;) '
-            f'{get_method_name(story)} '
-            f'{story._request_.URI}(...) '
+            'omg'
+            # f'{calculate_runtime(story)} '
+            # f'{get_client_name(story)} ;) '
+            # f'{get_method_name(story)} '
+            # f'{story._request_.URI}(...) '
         )
 

@@ -53,9 +53,9 @@ def mount(
 
         def in_another_process():
             loop = asyncio.new_event_loop()
-            for p, a, kw in btasks:
-                entrypoint = Entrypoint(p, story._settings_, None)
-                loop.run_until_complete(entrypoint(*a, **kw))
+            for p, a, k in btasks:
+                entrypoint = Entrypoint(p, wampify.settings, None)
+                loop.run_until_complete(entrypoint(*a, **k))
 
         if len(btasks) == 0:
             return
