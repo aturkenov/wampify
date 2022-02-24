@@ -4,8 +4,8 @@ from wampify.story import *
 
 wampify = Wampify(
     debug=False,
-    uri_prefix='com.example',
-    router_url='ws://127.0.0.1:8080/private',
+    urip='com.example',
+    router={ 'url': 'ws://127.0.0.1:8080/private' },
     wamps={
         'realm': 'example',
         'show_registered': True,
