@@ -1,11 +1,11 @@
-from wampify import Wampify
+from wampify import Wampify, background_task
 from wampify.story import *
 
 
 wampify = Wampify(
     debug=False,
-    uri_prefix='com.example',
-    router_url='ws://127.0.0.1:8080/private',
+    urip='com.example',
+    router={ 'url': 'ws://127.0.0.1:8080/private' },
     wamps={
         'realm': 'example',
         'show_registered': True,
@@ -14,14 +14,17 @@ wampify = Wampify(
 )
 
 
-async def background_task():
+background_task.mount(wampify)
+
+
+async def btask():
     print('im here')
 
 
 @wampify.register
 async def asap():
     story = get_current_story()
-    story._background_tasks_.add(background_task)
+    story._background_tasks_.add(btask)
     print('background task pushed to queue')
 
 

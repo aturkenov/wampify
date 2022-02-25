@@ -6,10 +6,7 @@ from wampify.endpoints import (
 from wampify.middleware import BaseMiddleware
 from wampify.signals import entrypoint_signals
 from wampify.exceptions import SomethingWentWrong
-from wampify.settings import (
-    WampifySettings,
-    RegisterEndpointOptions, SubscribeEndpointOptions
-)
+from wampify.settings import WampifySettings
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError
 from typing import List, Any, Callable, Mapping
