@@ -1,4 +1,5 @@
 import asyncio
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from typing import List, Tuple, Callable, Iterable, Mapping
 
@@ -48,6 +49,7 @@ def _call_async(
         entrypoint = Entrypoint(p, __wampify__.settings, None)
         loop.run_until_complete(entrypoint(*a, **k))
 
+
 async def _run(
     pool,
     tasks: List[Tuple[Callable, Iterable, Mapping]]
@@ -57,14 +59,27 @@ async def _run(
 
 
 def mount(
-    wampify
+    wampify,
+    workers: int = None
 ) -> None:
+    """
+    Mounts background tasks module
+
+    Executes queued tasks in background pool.
+    By default number of workers equal to current machine cpu count.
+
+    - `workers` number of pool workers
+    """
     from wampify.signals import wamps_signals, entrypoint_signals
 
-    max_workers = 2
+    if workers is None:
+        workers = multiprocessing.cpu_count()
 
+    # TODO required to give opportunity to choose
+    # TODO desired type of pool executor
+    # TODO e.g. ThreadPoolExecutor or ProcessPoolExecutor
     pool = ProcessPoolExecutor(
-        max_workers=max_workers,
+        max_workers=workers,
         initializer=_initialize_background_process,
         initargs=(wampify, )
     )

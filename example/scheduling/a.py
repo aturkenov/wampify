@@ -1,5 +1,4 @@
-from wampify import Wampify
-from wampify import scheduling
+from wampify import Wampify, scheduler
 
 
 wampify = Wampify(
@@ -15,7 +14,10 @@ wampify = Wampify(
 )
 
 
-scheduling.mount(wampify)
+scheduler.mount(wampify)
+
+
+wampify.test
 
 
 def a():

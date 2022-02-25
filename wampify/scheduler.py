@@ -12,11 +12,11 @@ class WampifyScheduler(schedule.Scheduler):
     def every(
         self,
         interval: int = 1
-    ) -> 'WampifySchedulerJob':
-        return WampifySchedulerJob(interval, self)
+    ) -> 'WampifyJob':
+        return WampifyJob(interval, self)
 
 
-class WampifySchedulerJob(schedule.Job):
+class WampifyJob(schedule.Job):
 
     @property
     def procedure(
@@ -35,21 +35,21 @@ class WampifySchedulerJob(schedule.Job):
         )
 
 
-def _initialize_scheduling_process(
-    wampify
+def _initialize_scheduler_process(
+    wampify,
+    update_interval: int = 1
 ):
     """
     Execute scheduled jobs
     """
     from wampify.entrypoints import Entrypoint
 
-    loop = asyncio.new_event_loop()
-
     def call_async(
         __procedure__,
         *A: Iterable,
         **K: Mapping
     ):
+        loop = asyncio.new_event_loop()
         loop.run_until_complete(__procedure__(*A, **K))
 
     for j in wampify.schedule.get_jobs():
@@ -57,27 +57,41 @@ def _initialize_scheduling_process(
         _ = functools.partial(call_async, entrypoint)
         j.replace_procedure(_)
 
-    interval = 1
+    update_interval = 1
     while True:
         wampify.schedule.run_pending()
-        time.sleep(interval)
+        time.sleep(update_interval)
 
 
 def mount(
-    wampify
+    wampify,
+    update_interval: int = 1,
+    logging_level = logging.DEBUG
 ) -> None:
     """
+    Mounts scheduling module in wampify
+
+    Executes scheduled jobs in background process, when WAMP session is joined
+
+    - `logging_level` schedule library logger level
+    - `update_interval` update interval for executing pending tasks in seconds
     """
     from wampify.signals import wamps_signals
 
     schedule_logger = logging.getLogger('schedule')
-    schedule_logger.setLevel(level=logging.DEBUG)
+    schedule_logger.setLevel(level=logging_level)
 
     wampify.schedule = WampifyScheduler()
+    wampify.__annotations__['test'] = float
 
+    # TODO required to distribute execution of jobs
+    # TODO from different types of polls
     process = multiprocessing.Process(
-        target=_initialize_scheduling_process,
-        kwargs={'wampify': wampify}
+        target=_initialize_scheduler_process,
+        kwargs={
+            'wampify': wampify,
+            'update_interval': update_interval
+        }
     )
 
     @wamps_signals.on
@@ -92,5 +106,6 @@ def mount(
         session,
         details
     ):
+        process.close()
         process.join()
 

@@ -1,5 +1,4 @@
 from wampify.client import Client
-from wampify.background_task import BackgroundTasks
 from wampify.requests import BaseRequest
 from wampify.settings import WampifySettings
 from autobahn.wamp import ISession as WAMPIS
@@ -14,7 +13,6 @@ class Story:
     _settings_: WampifySettings
     _client_: Client
     _wamps_: WAMPIS
-    _background_tasks_: BackgroundTasks
     _request_: BaseRequest
 
 

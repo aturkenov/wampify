@@ -2,10 +2,9 @@ from wampify.wamp import WAMPBucket
 from wampify.middleware import BaseMiddleware
 from wampify.entrypoints import CallEntrypoint, PublishEntrypoint
 from wampify.settings import WampifySettings, get_validated_settings
-from wampify import background_task
 from wampify import logger
 from autobahn.wamp import ISession as WAMPIS, RegisterOptions, SubscribeOptions
-from autobahn.asyncio.wamp import ApplicationRunner as AsyncioApplicationRunner
+from autobahn.asyncio.wamp import ApplicationRunner
 from typing import Callable, Union, List, Mapping
 
 
@@ -35,7 +34,6 @@ class Wampify:
         self._bucket = WAMPBucket()
         self.wamps_factory._bucket = self._bucket
         self.wamps_factory.onChallenge = self.settings.wamps.on_challenge
-        background_task.mount(self)
         logger.mount(self)
 
     def add_middleware(
@@ -212,7 +210,7 @@ class Wampify:
             self._wamps = self.wamps_factory()
             return self._wamps
         assert type(self.settings.router.url) == str, 'URL is required'
-        runner = AsyncioApplicationRunner(self.settings.router.url)
+        runner = ApplicationRunner(self.settings.router.url)
         if start_loop is None:
             start_loop = self.settings.start_loop
         return runner.run(create_session, start_loop=start_loop)
