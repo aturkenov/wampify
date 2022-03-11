@@ -82,7 +82,6 @@ def mount(
     schedule_logger.setLevel(level=logging_level)
 
     wampify.schedule = WampifyScheduler()
-    wampify.__annotations__['test'] = float
 
     # TODO required to distribute execution of jobs
     # TODO from different types of polls
