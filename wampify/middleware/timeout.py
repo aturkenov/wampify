@@ -1,7 +1,7 @@
 import asyncio
 from wampify.middleware.base import BaseMiddleware
 from wampify.requests import BaseRequest
-from wampify.exceptions import TimeoutExpired
+from wampify.exceptions import TimedOut
 from async_timeout import timeout
 
 
@@ -24,7 +24,7 @@ class TimeoutMiddleware(BaseMiddleware):
             async with timeout(duration):
                 output = await self.call_next(request)
         except asyncio.TimeoutError:
-            raise TimeoutExpired()
+            raise TimedOut()
         else:
             return output
 

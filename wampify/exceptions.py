@@ -77,13 +77,13 @@ class NotFound(BaseError):
     cause = 'The requested object was not found.'
 
 
-class TimeoutExpired(BaseError):
+class TimedOut(BaseError):
     """
     408
     """
 
-    name = 'timeout_expired'
-    cause = 'Request timeout expired'
+    name = 'timed_out'
+    cause = 'Timed out'
 
 class SomethingWentWrong(BaseError):
     """
