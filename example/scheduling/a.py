@@ -17,9 +17,6 @@ wampify = Wampify(
 scheduler.mount(wampify)
 
 
-wampify.test
-
-
 def a():
     print('a')
 
@@ -32,4 +29,5 @@ wampify.schedule.every(2).seconds.do(a)
 wampify.schedule.every(3).seconds.do(b)
 
 
-wampify.run()
+if __name__ == '__main__':
+    wampify.run()

@@ -40,7 +40,7 @@ def _initialize_scheduler_process(
     update_interval: int = 1
 ):
     """
-    Execute scheduled jobs
+    Execute pending jobs every `update_interval` seconds
     """
     from wampify.entrypoints import Entrypoint
 
