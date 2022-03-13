@@ -1,7 +1,7 @@
 import asyncio
 from wampify import Wampify
-from wampify.middleware import BaseMiddleware
-from wampify.middleware.timeout import TimeoutMiddleware
+from wampify.middlewares import BaseMiddleware
+from wampify.middlewares.timeout import TimeoutMiddleware
 
 
 wampify = Wampify(

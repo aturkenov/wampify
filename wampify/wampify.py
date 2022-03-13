@@ -1,5 +1,5 @@
 from wampify.wamp import WAMPBucket
-from wampify.middleware import BaseMiddleware
+from wampify.middlewares import BaseMiddleware
 from wampify.entrypoints import CallEntrypoint, PublishEntrypoint
 from wampify.settings import WampifySettings, get_validated_settings
 from wampify import logger

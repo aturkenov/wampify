@@ -1,5 +1,5 @@
 import asyncio
-from wampify.middleware.base import BaseMiddleware
+from wampify.middlewares.base import BaseMiddleware
 from wampify.requests import BaseRequest
 from wampify.exceptions import TimedOut
 from async_timeout import timeout

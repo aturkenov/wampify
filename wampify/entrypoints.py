@@ -3,7 +3,7 @@ from wampify.requests import BaseRequest, CallRequest, PublishRequest
 from wampify.endpoints import (
     Endpoint, SharedEndpoint, RegisterEndpoint, SubscribeEndpoint
 )
-from wampify.middleware import BaseMiddleware
+from wampify.middlewares import BaseMiddleware
 from wampify.signals import entrypoint_signals
 from wampify.exceptions import SomethingWentWrong
 from wampify.settings import WampifySettings
