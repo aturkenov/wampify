@@ -1,14 +1,12 @@
-from .story import *
-from .requests import (
-    BaseRequest, CallRequest, PublishRequest
-)
-from .endpoints import (
+from wampify.story import *
+from wampify.requests import BaseRequest, CallRequest, PublishRequest
+from wampify.endpoints import (
     Endpoint, SharedEndpoint, RegisterEndpoint, SubscribeEndpoint
 )
-from .middleware import BaseMiddleware
-from .signals import entrypoint_signals
-from .exceptions import SomethingWentWrong
-from .settings import WampifySettings, EndpointOptions
+from wampify.middlewares import BaseMiddleware
+from wampify.signals import entrypoint_signals
+from wampify.exceptions import SomethingWentWrong
+from wampify.settings import WampifySettings
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError
 from typing import List, Any, Callable, Mapping
@@ -24,7 +22,7 @@ class Entrypoint:
     - `user_settings`
     """
 
-    _endpoint: Endpoint 
+    endpoint: Endpoint 
     _settings: WampifySettings
     _wamps: WAMPIS
 
@@ -34,7 +32,7 @@ class Entrypoint:
         user_settings: WampifySettings,
         wamps: WAMPIS
     ) -> None:
-        self._endpoint = Endpoint(procedure)
+        self.endpoint = Endpoint(procedure)
         self._settings = user_settings
         self._wamps = wamps
 
@@ -49,7 +47,7 @@ class Entrypoint:
         story._settings_ = self._settings
         try:
             await entrypoint_signals.fire('opened', story)
-            output = await self._endpoint(*A, **K)
+            output = await self.endpoint(*A, **K)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
         else:
@@ -71,26 +69,19 @@ class SharedEntrypoint(Entrypoint):
     def __init__(
         self,
         procedure: Callable,
-        endpoint_options: EndpointOptions,
+        endpoint_options: Mapping,
         user_settings: WampifySettings,
         user_middlewares: List[BaseMiddleware],
-        user_serializers: List[Callable],
         wamps: WAMPIS
     ):
         self._settings = user_settings
-        self._endpoint = self._create_endpoint(
-            procedure, endpoint_options, user_serializers
-        )
-        self._build_responsibility_chain(
-            user_middlewares, self._endpoint
-        )
+        self.endpoint = self._create_endpoint(procedure, endpoint_options)
+        self._build_responsibility_chain(user_middlewares)
         self._wamps = wamps
 
     def _build_responsibility_chain(
         self,
-        middlewares: List[BaseMiddleware],
-        endpoint: SharedEndpoint,
-        settings: Mapping = None
+        middlewares: List[BaseMiddleware]
     ) -> BaseMiddleware:
         """
         Build chain of responsibility from passed middlewares
@@ -98,10 +89,11 @@ class SharedEntrypoint(Entrypoint):
         and append it to chain
         """
         assert isinstance(middlewares, list), 'Must be list of middlewares'
+        endpoint = self.endpoint
 
         self._middleware, it = None, None
         for m in middlewares:
-            m = m(settings)
+            m = m(self._settings, endpoint.options)
 
             if self._middleware is None and it is None:
                 self._middleware, it = m, m
@@ -118,7 +110,7 @@ class SharedEntrypoint(Entrypoint):
             ) -> Any:
                 return await endpoint(*request.A, **request.K)
 
-        endpoint_as_middleware = EndpointAsMiddleware()
+        endpoint_as_middleware = EndpointAsMiddleware(self._settings, endpoint.options)
 
         if it is None:
             self._middleware = endpoint_as_middleware
@@ -128,8 +120,7 @@ class SharedEntrypoint(Entrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_options: EndpointOptions,
-        user_serilizers: List[Callable]
+        options: Mapping
     ) -> SharedEndpoint: ...
 
     async def execute(
@@ -150,11 +141,11 @@ class SharedEntrypoint(Entrypoint):
 
             try:
                 e.__init__()
-                name = f'{self._settings.uri_prefix}.error.{e.name}'
+                name = f'{self._settings.urip}.error.{e.name}'
                 payload = e.to_primitive()
             except:
                 e = SomethingWentWrong()
-                name = f'{self._settings.uri_prefix}.error.{e.name}'
+                name = f'{self._settings.urip}.error.{e.name}'
                 payload = e.to_primitive()
             raise ApplicationError(error=name, payload=payload)
         else:
@@ -174,12 +165,9 @@ class CallEntrypoint(SharedEntrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_options: EndpointOptions,
-        user_serilizers: List[Callable]
+        options: Mapping
     ) -> RegisterEndpoint:
-        return RegisterEndpoint(
-            procedure, endpoint_options.validate_payload, user_serilizers
-        )
+        return RegisterEndpoint(procedure, options)
 
     def _create_request(
         self,
@@ -195,12 +183,9 @@ class PublishEntrypoint(SharedEntrypoint):
     def _create_endpoint(
         self,
         procedure: Callable,
-        endpoint_options: EndpointOptions,
-        user_serilizers: List[Callable]
+        options: Mapping
     ) -> SubscribeEndpoint:
-        return SubscribeEndpoint(
-            procedure, endpoint_options.validate_payload, user_serilizers
-        )
+        return SubscribeEndpoint(procedure, options)
 
     def _create_request(
         self,

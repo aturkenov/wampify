@@ -17,10 +17,12 @@ class BaseError(BaseException):
         if cause is not None:
             self.cause = cause
 
-    def to_primitive(cls):
+    def to_primitive(
+        klass
+    ):
         return {
-            'name': cls.name,
-            'cause': cls.cause
+            'name': klass.name,
+            'cause': klass.cause
         }
 
 
@@ -75,6 +77,14 @@ class NotFound(BaseError):
     cause = 'The requested object was not found.'
 
 
+class TimedOut(BaseError):
+    """
+    408
+    """
+
+    name = 'timed_out'
+    cause = 'Timed out'
+
 class SomethingWentWrong(BaseError):
     """
     500
@@ -98,14 +108,18 @@ class MiddlewareNotBoundError(SomethingWentWrong):
 
 class FactoryDoesNotExist(SomethingWentWrong):
     """
+    500
     """
 
 
 class WAMPClientHasNotJoinedYet(SomethingWentWrong):
     """
+    500
     """
+
 
 class WAMPCouldNotParseMessage(SomethingWentWrong):
     """
+    500
     """
 

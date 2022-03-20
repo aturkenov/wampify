@@ -1,65 +1,46 @@
-from .signals import wamps_signals
-from .settings import WampifySessionSettings
+from wampify.signals import wamps_signals
+from wampify.settings import WampifySessionSettings
 from autobahn.asyncio.wamp import ApplicationSession as AsyncioApplicationSession
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
-from typing import Union, List, Tuple, Callable, Mapping, Any
+from typing import List, Tuple, Callable, Mapping, Any
 
 
 class WAMPBucket:
     """
     """
 
-    _urip: Union[str, None]
     # register uri: procedure, options
     _R: List[Tuple[str, Callable, Mapping]]
     # subscribe uri: procedure, options
     _S: List[Tuple[str, Callable, Mapping]]
 
     def __init__(
-        self,
-        uri_prefix: str = None
+        self
     ):
-        self._urip = uri_prefix
         self._R = []
         self._S = []
 
-    def _create_uri(
-        self,
-        path: str
-    ) -> str:
-        if self._urip is None:
-            return path
-        return f"{self._urip}.{path}"
-
     def add_register(
         self,
-        path: str,
+        URI: str,
         procedure: Callable,
-        O: Mapping[str, Any]
+        options: Mapping[str, Any]
     ) -> str:
         """
         Adds register procdure
         """
-        assert type(path) == str, 'path must be string'
-        assert callable(procedure), 'procedure must be Callable'
-        URI = self._create_uri(path)
-        self._R.append((URI, procedure, O))
-        return URI
+        self._R.append((URI, procedure, options))
 
     def add_subscribe(
         self,
-        path: str,
+        URI: str,
         procedure: Callable,
-        O: Mapping[str, Any]
+        options: Mapping[str, Any]
     ) -> str:
         """
         Adds susbscribe procedure
         """
-        assert type(path) == str, 'path must be string'
-        assert callable(procedure), 'procedure must be Callable'
-        URI = self._create_uri(path)
-        self._S.append((URI, procedure, O))
-        return URI
+        self._S.append((URI, procedure, options))
 
     def get_registered(
         self

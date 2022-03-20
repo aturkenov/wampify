@@ -1,15 +1,10 @@
-from .wamp import WAMPBucket
-from .middleware import BaseMiddleware
-from .entrypoints import (
-    CallEntrypoint, PublishEntrypoint
-)
-from .settings import (
-    WampifySettings, get_validated_settings, EndpointOptions
-)
-from . import background_task
-from . import logger
-from autobahn.wamp import ISession as WAMPIS
-from autobahn.asyncio.wamp import ApplicationRunner as AsyncioApplicationRunner
+from wampify.wamp import WAMPBucket
+from wampify.middlewares import BaseMiddleware
+from wampify.entrypoints import CallEntrypoint, PublishEntrypoint
+from wampify.settings import WampifySettings, get_validated_settings
+from wampify import logger
+from autobahn.wamp import ISession as WAMPIS, RegisterOptions, SubscribeOptions
+from autobahn.asyncio.wamp import ApplicationRunner
 from typing import Callable, Union, List, Mapping
 
 
@@ -25,7 +20,6 @@ class Wampify:
     wamps_factory: WAMPIS
     _wamps: Union[WAMPIS, None]
     _middlewares: List[BaseMiddleware]
-    _serializers: List[Callable]
     _bucket: WAMPBucket
 
     def __init__(
@@ -34,14 +28,12 @@ class Wampify:
     ) -> None:
         self._wamps = None
         self._middlewares = []
-        self._serializers = []
         self.settings = get_validated_settings(**KW)
         self.wamps_factory = self.settings.wamps.factory
         self.wamps_factory._settings = self.settings.wamps
-        self._bucket = WAMPBucket(self.settings.uri_prefix)
+        self._bucket = WAMPBucket()
         self.wamps_factory._bucket = self._bucket
         self.wamps_factory.onChallenge = self.settings.wamps.on_challenge
-        background_task.mount(self)
         logger.mount(self)
 
     def add_middleware(
@@ -55,27 +47,18 @@ class Wampify:
         assert _, 'Must be BaseMiddleware'
         self._middlewares.append(m)
 
-    def add_serializer(
-        self,
-        s: Callable
-    ) -> None:
-        """
-        Adds custom serializer
-        """
-        assert callable(s), 'Serializer must be callable'
-        # TODO add some serialization tests here
-        self._serializers.append(s)
-
     def add_register(
         self,
-        path: str,
+        uri: str,
         procedure: Callable,
-        options: Mapping = {}
+        options: Mapping = {},
+        without_urip: bool = False
     ) -> Callable:
         """
         Adds register procedure
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
+        - `without_urip`: `bool` 
 
         Returns passed procedure
 
@@ -85,8 +68,8 @@ class Wampify:
         >>> wampify.add_register('pow', pow)
         """
         entrypoint = CallEntrypoint(
-            procedure, EndpointOptions(**options), self.settings,
-            self._middlewares, self._serializers, self._wamps
+            procedure, options, self.settings,
+            self._middlewares, self._wamps
         )
 
         async def on_call(
@@ -96,32 +79,35 @@ class Wampify:
         ):
             return await entrypoint(A, K, _CALL_DETAILS_)
 
-        URI = self._bucket.add_register(
-            path, on_call, {'details_arg': '_CALL_DETAILS_'}
-        )
+        _uri = uri if without_urip else f'{self.settings.urip}.{uri}'
+        _options = { k: options.get(k, None) for k in RegisterOptions.__slots__ }
+        _options['details_arg'] = '_CALL_DETAILS_'
+        self._bucket.add_register(_uri, on_call, _options)
         return procedure
 
     def add_subscribe(
         self,
-        path: str,
+        uri: str,
         procedure: Callable,
-        options: Mapping = {}
+        options: Mapping = {},
+        without_urip: bool = False
     ) -> Callable:
         """
         Adds subscribe procedure
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
+        - `without_urip`: `bool` 
 
         Returns passed procedure
 
-        >>> async def on_hello(name: str = 'Anonymous'):
+        >>> async def on_hello(name = 'Anonymous'):
         >>>     print(f'{name} said hello')
         >>>
         >>> wampify.add_subscribe('hello', on_hello)
         """
         entrypoint = PublishEntrypoint(
-            procedure, EndpointOptions(**options), self.settings,
-            self._middlewares, self._serializers, self._wamps
+            procedure, options, self.settings,
+            self._middlewares, self._wamps
         )
 
         async def on_publish(
@@ -131,23 +117,26 @@ class Wampify:
         ):
             return await entrypoint(A, K, _PUBLISH_DETAILS_)
 
-        URI = self._bucket.add_subscribe(
-            path, on_publish, {'details_arg': '_PUBLISH_DETAILS_'}
-        )
+        _uri = uri if without_urip else f'{self.settings.urip}.{uri}'
+        _options = { k: options.get(k, None) for k in SubscribeOptions.__slots__ }
+        _options['details_arg'] = '_PUBLISH_DETAILS_'
+        self._bucket.add_subscribe(_uri, on_publish, _options)
         return procedure
 
     def register(
         self,
-        path_or_procedure: Union[str, Callable] = None,
+        uri: Union[str, Callable] = None,
         *,
-        options: Mapping = {}
+        options: Mapping = {},
+        without_urip: bool = False
     ) -> Callable:
         """
         Adds register procedure as decorator
 
-        Uses procedure name if URI segment is not passed
+        Uses procedure name if `uri` is not passed
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
+        - `without_urip`: `bool` 
 
         Returns passed procedure
 
@@ -158,61 +147,57 @@ class Wampify:
         def decorate(
             procedure: Callable
         ):
-            path = path_or_procedure
-            if path is None:
-                path = procedure.__name__
-            return self.add_register(path, procedure, options)
-        if callable(path_or_procedure):
-            procedure = path_or_procedure
-            path = procedure.__name__
-            self.add_register(path, procedure, options)
+            _uri = procedure.__name__ if uri is None else uri
+            self.add_register(_uri, procedure, options, without_urip)
+            return procedure
+
+        if callable(uri):
+            _uri, procedure = uri.__name__, uri
+            self.add_register(_uri, procedure, options, without_urip)
             return procedure
         return decorate
 
     def subscribe(
         self,
-        path_or_procedure: Union[str, Callable] = None,
+        uri: Union[str, Callable] = None,
         *,
-        options: Mapping = {}
+        options: Mapping = {},
+        without_urip: bool = False
     ) -> Callable:
         """
         Adds subscribe procedure as decorator
 
-        Uses procedure name if URI segment is not passed
+        Uses procedure name if `uri` is not passed
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
+        - `without_urip`: `bool` 
 
         Returns passed procedure
 
         >>> @wampify.subscribe
-        >>> async def hello(name: str = 'Anonymous'):
+        >>> async def hello(name = 'Anonymous'):
         >>>     print(f'{name} you are welcome!')
         """
         def decorate(
             procedure: Callable
         ):
-            path = path_or_procedure
-            if path is None:
-                path = procedure.__name__
-            return self.add_subscribe(path, procedure, options)
-        if callable(path_or_procedure):
-            procedure = path_or_procedure
-            path = procedure.__name__
-            self.add_subscribe(path, procedure, options)
+            _uri = procedure.__name__ if uri is None else uri
+            self.add_subscribe(_uri, procedure, options, without_urip)
+            return procedure
+
+        if callable(uri):
+            _uri, procedure = uri.__name__, uri
+            self.add_subscribe(_uri, procedure, options, without_urip)
             return procedure
         return decorate
 
     def run(
         self,
-        router_url: str = None,
         start_loop=None
     ):
         """
         Runs WAMP session
 
-        if `start_loop` is passed, executes event loop
-
-        - `router_url` - wamp router url
         - `start_loop` - executes event loop
 
         Returns: None
@@ -224,10 +209,8 @@ class Wampify:
             assert self._wamps is None
             self._wamps = self.wamps_factory()
             return self._wamps
-        if router_url is None:
-            router_url = self.settings.router_url
-        assert type(router_url) == str, 'URL is required'
-        runner = AsyncioApplicationRunner(router_url)
+        assert type(self.settings.router.url) == str, 'URL is required'
+        runner = ApplicationRunner(self.settings.router.url)
         if start_loop is None:
             start_loop = self.settings.start_loop
         return runner.run(create_session, start_loop=start_loop)

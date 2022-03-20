@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from .signals import wamps_signals, entrypoint_signals
+from wampify.signals import wamps_signals, entrypoint_signals
 from typing import Any
 
 
@@ -10,8 +10,8 @@ logger = logging.getLogger('wampify')
 def mount(
     wampify
 ) -> None:
-    from .story import Story
-    from .requests import CallRequest, PublishRequest
+    from wampify.story import Story
+    from wampify.requests import CallRequest, PublishRequest
 
     def calculate_runtime(
         story: Story
@@ -64,30 +64,29 @@ def mount(
         logger.info('WAMP Session leaved')
 
     @entrypoint_signals.on
-    def opened(
-        story: Story
-    ): ...
-
-    @entrypoint_signals.on
     def raised(
         story: Story,
         e
     ):
-        logger.exception(
-            f'{calculate_runtime(story)} '
-            f'{get_client_name(story)} '
-            f'{get_method_name(story)} '
-            f'{story._request_.URI} {get_request_arguments(story)}'
-        )
+        if hasattr(story, '_request_'):
+            logger.exception(
+                f'{calculate_runtime(story)} '
+                f'{get_client_name(story)} '
+                f'{get_method_name(story)} '
+                f'{story._request_.URI} {get_request_arguments(story)}'
+            )
+        else:
+            logger.exception('something went wrong')
 
     @entrypoint_signals.on
     def closed(
         story: Story
     ):
-        logger.info(
-            f'{calculate_runtime(story)} '
-            f'{get_client_name(story)} ;) '
-            f'{get_method_name(story)} '
-            f'{story._request_.URI}(...) '
-        )
+        if hasattr(story, '_request_'):
+            logger.info(
+                f'{calculate_runtime(story)} '
+                f'{get_client_name(story)} ;) '
+                f'{get_method_name(story)} '
+                f'{story._request_.URI}(...) '
+            )
 

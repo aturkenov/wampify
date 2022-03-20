@@ -1,6 +1,6 @@
 import asyncio
 from inspect import iscoroutinefunction as is_async
-from typing import Dict, List, Callable, Union, Mapping
+from typing import Dict, List, Callable, Union
 
 
 class SignalManager:
@@ -23,7 +23,7 @@ class SignalManager:
 
     def on(
         self,
-        signal_name_or_procedure: Union[str, Callable] = None
+        signal_name: Union[str, Callable] = None
     ) -> Callable:
         """
         Uses procedure name if signal_name is not passed
@@ -36,14 +36,13 @@ class SignalManager:
         def decorate(
             procedure: Callable
         ):
-            signal_name = signal_name_or_procedure
-            if signal_name is None:
-                signal_name = procedure.__name__
-            return self.add(signal_name, procedure)
-        if callable(signal_name_or_procedure):
-            procedure = signal_name_or_procedure
-            signal_name = procedure.__name__
-            self.add(signal_name, procedure)
+            _signal_name = procedure.__name__ if signal_name is None else signal_name
+            self.add(_signal_name, procedure)
+            return procedure
+
+        if callable(signal_name):
+            _signal_name, procedure = signal_name.__name__, signal_name
+            self.add(_signal_name, procedure)
             return procedure
         return decorate
 
