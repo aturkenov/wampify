@@ -7,7 +7,7 @@ with open('./README.md', 'r', encoding='utf-8') as file:
 
 setuptools.setup(
     name='wampify',
-    version='0.0.1.3',
+    version='0.0.3',
     author='Aidar Turkenov',
     author_email='a.k.turken0v@gmail.com',
     description='Web Application Messaging Protocol Framework',
@@ -20,8 +20,9 @@ setuptools.setup(
     },
     classifiers=[
         'Typing :: Typed',
-        'Framework :: Wampify',
-        'Topic :: Internet :: WAMP',
+        'Topic :: Internet',
+        'Topic :: Communications',
+        'Framework :: AsyncIO',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',
