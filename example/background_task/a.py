@@ -4,7 +4,7 @@ from wampify.story import *
 
 wampify = Wampify(
     debug=False,
-    urip='com.example',
+    preuri='com.example',
     router={ 'url': 'ws://127.0.0.1:8080/private' },
     wamps={
         'realm': 'example',

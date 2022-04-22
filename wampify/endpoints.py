@@ -22,9 +22,16 @@ class Endpoint:
         options: Mapping = {}
     ):
         assert callable(procedure), 'procedure must be Callable'
-        self._procedure = procedure
         self._is_async = is_async(procedure)
+        self.setup_procedure(procedure, options)
+
+    def setup_procedure(
+        self,
+        procedure: Callable,
+        options: Mapping = {}
+    ) -> None:
         self.options = EndpointOptions(**options)
+        self._procedure = procedure
 
     async def execute(
         self,
@@ -51,17 +58,22 @@ class SharedEndpoint(Endpoint):
     """
     """
 
-    def __init__(
-        self,
-        procedure: Callable,
-        options: EndpointOptions
-    ):
-        super().__init__(procedure, options)
-        if self.options.validate_payload:
-            self._procedure = validate_arguments(self._procedure)
- 
     def _get_pydantic_validation_error_content(self, e: ValidationError):
         return e.errors()
+
+    def setup_procedure(
+        self,
+        procedure: Callable,
+        options: Mapping = {}
+    ):
+        super().setup_procedure(procedure, options)
+        self.options.payload.setdefault('arbitrary_types_allowed', True)
+        self.options.payload.setdefault('underscore_attrs_are_private', True)
+        validate = self.options.payload.get('validate', True)
+        if validate:
+            self._procedure = validate_arguments(
+                self._procedure, config=self.options.payload
+            )
 
     async def execute(
         self,
