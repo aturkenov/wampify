@@ -48,7 +48,9 @@ from wampify import Wampify
 wampify = Wampify(
     debug=True,
     preuri='com.example',
-    router_url='ws://127.0.0.1:8080/private',
+    router={
+        'url': 'ws://127.0.0.1:8080/private'
+    },
     wamps={
         'realm': 'example',
         'authid': 'application',
