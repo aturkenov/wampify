@@ -14,7 +14,7 @@ class EndpointOptions(_BaseModel):
     """
     """
 
-    validate_payload = True
+    payload: Mapping = {}
     middlewares: Mapping = {}
 
 
@@ -62,7 +62,7 @@ class WampifySettings(_BaseModel):
 
     debug = False
     wamps: WampifySessionSettings
-    urip: str
+    preuri: str
     router: RouterSettings
     start_loop = True
     middlewares: Mapping = {}

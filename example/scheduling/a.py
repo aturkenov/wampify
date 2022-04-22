@@ -3,7 +3,7 @@ from wampify import Wampify, scheduler
 
 wampify = Wampify(
     debug=False,
-    urip='com.example',
+    preuri='com.example',
     router={ 'url': 'ws://localhost:8000/private' },
     wamps={
         'realm': 'master',

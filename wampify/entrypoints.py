@@ -141,11 +141,11 @@ class SharedEntrypoint(Entrypoint):
 
             try:
                 e.__init__()
-                name = f'{self._settings.urip}.error.{e.name}'
+                name = f'{self._settings.preuri}.error.{e.name}'
                 payload = e.to_primitive()
             except:
                 e = SomethingWentWrong()
-                name = f'{self._settings.urip}.error.{e.name}'
+                name = f'{self._settings.preuri}.error.{e.name}'
                 payload = e.to_primitive()
             raise ApplicationError(error=name, payload=payload)
         else:

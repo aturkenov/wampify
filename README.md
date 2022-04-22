@@ -40,15 +40,17 @@ crossbar init
 pip install wampify
 ```
 
-Initialize Wampify application, pass `urip` (URI prefix), WAMP router URL, WAMP session realm and WAMP session authentication (by default anonymous).
+Initialize Wampify application, pass `preuri` (URI prefix), WAMP router URL, WAMP session realm and WAMP session authentication (by default anonymous).
 
 ```python
 from wampify import Wampify
 
 wampify = Wampify(
     debug=True,
-    urip='com.example',
-    router_url='ws://127.0.0.1:8080/private',
+    preuri='com.example',
+    router={
+        'url': 'ws://127.0.0.1:8080/private'
+    },
     wamps={
         'realm': 'example',
         'authid': 'application',
@@ -235,7 +237,7 @@ from wampify.middleware.timeout import TimeoutMiddleware
 
 wampify = Wampify(
     debug=False,
-    urip='com.example',
+    preuri='com.example',
     router={ 'url': 'ws://127.0.0.1:8765/private' },
     wamps={
         'realm': 'example',
