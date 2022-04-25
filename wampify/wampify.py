@@ -30,15 +30,14 @@ class Wampify:
         self,
         **KW
     ) -> None:
-        self._wamps = None
         self._middlewares = []
         self.settings = get_validated_settings(**KW)
         self.wamps_factory = self.settings.wamps.factory
-        self.wamps_factory._settings = self.settings.wamps
-        self._bucket = WAMPBucket()
-        self.wamps_factory._bucket = self._bucket
-        self.wamps_factory.onChallenge = self.settings.wamps.on_challenge
         self._wamps = self.wamps_factory()
+        self._wamps._settings = self.settings.wamps
+        self._bucket = WAMPBucket()
+        self._wamps._bucket = self._bucket
+        self._wamps.onChallenge = self.settings.wamps.on_challenge
         logger.mount(self)
 
     def add_middleware(

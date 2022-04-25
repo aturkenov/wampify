@@ -7,7 +7,7 @@ with open('./README.md', 'r', encoding='utf-8') as file:
 
 setuptools.setup(
     name='wampify',
-    version='0.0.3',
+    version='0.0.6',
     author='Aidar Turkenov',
     author_email='a.k.turken0v@gmail.com',
     description='Web Application Messaging Protocol Framework',
