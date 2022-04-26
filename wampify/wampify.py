@@ -22,7 +22,7 @@ class Wampify:
 
     settings: WampifySettings
     wamps_factory: WAMPIS
-    _wamps: Union[WAMPIS, None]
+    session: Union[WAMPIS, None]
     _middlewares: List[BaseMiddleware]
     _bucket: WAMPBucket
 
@@ -33,11 +33,11 @@ class Wampify:
         self._middlewares = []
         self.settings = get_validated_settings(**KW)
         self.wamps_factory = self.settings.wamps.factory
-        self._wamps = self.wamps_factory()
-        self._wamps._settings = self.settings.wamps
+        self.session = self.wamps_factory()
+        self.session._settings = self.settings.wamps
         self._bucket = WAMPBucket()
-        self._wamps._bucket = self._bucket
-        self._wamps.onChallenge = self.settings.wamps.on_challenge
+        self.session._bucket = self._bucket
+        self.session.onChallenge = self.settings.wamps.on_challenge
         logger.mount(self)
 
     def add_middleware(
@@ -73,7 +73,7 @@ class Wampify:
         """
         entrypoint = CallEntrypoint(
             procedure, options, self.settings,
-            self._middlewares, self._wamps
+            self._middlewares, self.session
         )
 
         async def on_call(
@@ -111,7 +111,7 @@ class Wampify:
         """
         entrypoint = PublishEntrypoint(
             procedure, options, self.settings,
-            self._middlewares, self._wamps
+            self._middlewares, self.session
         )
 
         async def on_publish(
@@ -210,7 +210,7 @@ class Wampify:
             *A,
             **K
         ) -> WAMPIS:
-            return self._wamps
+            return self.session
         assert type(self.settings.router.url) == str, 'URL is required'
         runner = ApplicationRunner(self.settings.router.url)
         if start_loop is None:

@@ -1,3 +1,4 @@
+from typing import List, Any, Callable, Mapping
 from wampify.story import *
 from wampify.requests import BaseRequest, CallRequest, PublishRequest
 from wampify.endpoints import (
@@ -9,7 +10,7 @@ from wampify.exceptions import SomethingWentWrong
 from wampify.settings import WampifySettings
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError
-from typing import List, Any, Callable, Mapping
+from .shared.camel_to_snake import camel_to_snake
 
 
 class Entrypoint:
@@ -117,6 +118,24 @@ class SharedEntrypoint(Entrypoint):
         else:
             it.set_next(endpoint_as_middleware)
 
+    def _convert_to_application_level_exception(
+        self,
+        exception: BaseException
+    ) -> ApplicationError:
+        _ename = getattr(exception, '__name__', None)
+        if _ename is None:
+            _eclass = getattr(exception, '__class__', SomethingWentWrong)
+            _ename = _eclass.__name__
+        ename = camel_to_snake(_ename)
+        error_code = f'{self._settings.preuri}.error.{ename}'
+
+        if len(exception.args) > 0:
+            ecause = exception.args
+            return ApplicationError(error_code, *ecause)
+        else:
+            ecause = getattr(exception, 'cause', SomethingWentWrong.cause)
+            return ApplicationError(error_code, ecause)
+
     def _create_endpoint(
         self,
         procedure: Callable,
@@ -138,16 +157,7 @@ class SharedEntrypoint(Entrypoint):
             output = await self._middleware(story._request_)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
-
-            try:
-                e.__init__()
-                name = f'{self._settings.preuri}.error.{e.name}'
-                payload = e.to_primitive()
-            except:
-                e = SomethingWentWrong()
-                name = f'{self._settings.preuri}.error.{e.name}'
-                payload = e.to_primitive()
-            raise ApplicationError(error=name, payload=payload)
+            raise self._convert_to_application_level_exception(e)
         else:
             await entrypoint_signals.fire('closed', story)
             return output

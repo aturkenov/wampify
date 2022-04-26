@@ -1,5 +1,5 @@
 from wampify.requests import BaseRequest
-from wampify.exceptions import MiddlewareNotBoundError
+from wampify.exceptions import MiddlewareNotBound
 from wampify.settings import WampifySettings, EndpointOptions
 from typing import Any
 
@@ -35,7 +35,7 @@ class BaseMiddleware:
         Calls next chain
         """
         if self._next is None:
-            raise MiddlewareNotBoundError
+            raise MiddlewareNotBound
         return await self._next(request)
 
     async def handle(

@@ -28,7 +28,7 @@ class SubscribeEndpointOptions(EndpointOptions):
     """
 
 
-def wamps_on_challenge(session, challenge): ...
+def wamps_on_challenge(challenge): ...
 
 
 class WampifySessionSettings(_BaseModel):
