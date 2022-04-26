@@ -10,7 +10,7 @@ from wampify.exceptions import SomethingWentWrong
 from wampify.settings import WampifySettings
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError
-from .shared.camel_to_snake import camel_to_snake
+from wampify.shared.camel_to_snake import camel_to_snake
 
 
 class Entrypoint:
