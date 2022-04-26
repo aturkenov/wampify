@@ -1,10 +1,9 @@
-from wampify.exceptions import PayloadValidationError
-from wampify.settings import (
-    EndpointOptions
-)
+from wampify.settings import EndpointOptions
+from wampify.requests import BaseRequest
+from wampify.exceptions import InvalidPayload
 from inspect import iscoroutinefunction as is_async
 from pydantic import validate_arguments, ValidationError
-from typing import Callable, Iterable, Mapping, Any
+from typing import Callable, Iterable, Mapping, List, Any
 
 
 class Endpoint:
@@ -35,30 +34,30 @@ class Endpoint:
 
     async def execute(
         self,
-        *A,
-        **K
+        request: BaseRequest
     ) -> Any:
         """
         Executes procedure
         """
         if self._is_async:
-            return await self._procedure(*A, **K)
-        else:
-            return self._procedure(*A, **K)
+            return await self._procedure(*request.A, **request.K)
+        return self._procedure(*request.A, **request.K)
 
     async def __call__(
         self,
-        *A,
-        **K
+        request: BaseRequest
     ) -> Any:
-        return await self.execute(*A, **K)
+        return await self.execute(request=request)
 
 
 class SharedEndpoint(Endpoint):
     """
     """
 
-    def _get_pydantic_validation_error_content(self, e: ValidationError):
+    def _get_pydantic_validation_error_content(
+        self,
+        e: ValidationError
+    ) -> List:
         return e.errors()
 
     def setup_procedure(
@@ -77,21 +76,19 @@ class SharedEndpoint(Endpoint):
 
     async def execute(
         self,
-        *A: Iterable,
-        **K: Mapping
+        request: BaseRequest
     ) -> Any:
         """
-        Validates input data, otherwise raises `PayloadValidationError` 
+        Validates input data, otherwise raises `InvalidPayload` 
         """
         try:
             if self._is_async:
-                output = await self._procedure(*A, **K)
+                output = await self._procedure(*request.A, **request.K)
             else:
-                output = self._procedure(*A, **K)
+                output = self._procedure(*request.A, **request.K)
         except ValidationError as e:
-            raise PayloadValidationError(
-                cause=self._get_pydantic_validation_error_content(e)
-            )
+            cause = self._get_pydantic_validation_error_content(e)
+            raise InvalidPayload(*cause)
         else:
             return output
 

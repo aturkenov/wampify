@@ -8,16 +8,18 @@ class BaseRequest:
     """
     Represents a base request
 
+    - `URI` - 
     - `A` - requested arguments
     - `K` - requested keyword arguments
     - `D` - request details
+    - `sent_time` - 
     - `client` - requested client (wamp session)
     """
 
+    URI: str
     A: Iterable[Any]
     K: Mapping[str, Any]
     D: Any
-    URI: str
     sent_time: datetime
     client: Client
 

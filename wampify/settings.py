@@ -28,7 +28,7 @@ class SubscribeEndpointOptions(EndpointOptions):
     """
 
 
-def wamps_on_challenge(session, challenge): ...
+def wamps_on_challenge(challenge): ...
 
 
 class WampifySessionSettings(_BaseModel):
@@ -61,10 +61,10 @@ class WampifySettings(_BaseModel):
     """
 
     debug = False
-    wamps: WampifySessionSettings
     preuri: str
     router: RouterSettings
     start_loop = True
+    wamps: WampifySessionSettings
     middlewares: Mapping = {}
 
 
