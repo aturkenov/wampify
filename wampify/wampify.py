@@ -1,5 +1,4 @@
 from wampify.wamp import WAMPBucket
-from wampify.middlewares import BaseMiddleware
 from wampify.entrypoints import CallEntrypoint, PublishEntrypoint
 from wampify.settings import WampifySettings, get_validated_settings
 from wampify import logger
@@ -23,7 +22,7 @@ class Wampify:
     settings: WampifySettings
     wamps_factory: WAMPIS
     session: Union[WAMPIS, None]
-    _middlewares: List[BaseMiddleware]
+    _middlewares: List[Callable]
     _bucket: WAMPBucket
 
     def __init__(
@@ -42,13 +41,12 @@ class Wampify:
 
     def add_middleware(
         self,
-        m: BaseMiddleware
+        m: Callable
     ) -> None:
         """
         Adds custom middleware
         """
-        _ = isinstance(m, BaseMiddleware) or issubclass(m, BaseMiddleware)
-        assert _, 'Must be BaseMiddleware'
+        assert callable(m), 'Middleware must be Callable'
         self._middlewares.append(m)
 
     def add_register(

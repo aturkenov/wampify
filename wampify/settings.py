@@ -61,10 +61,10 @@ class WampifySettings(_BaseModel):
     """
 
     debug = False
-    wamps: WampifySessionSettings
     preuri: str
     router: RouterSettings
     start_loop = True
+    wamps: WampifySessionSettings
     middlewares: Mapping = {}
 
 

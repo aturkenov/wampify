@@ -1,6 +1,5 @@
-from wampify.client import Client
 from wampify.requests import BaseRequest
-from wampify.settings import WampifySettings
+from wampify.settings import WampifySettings, EndpointOptions
 from autobahn.wamp import ISession as WAMPIS
 from contextvars import ContextVar
 
@@ -11,9 +10,9 @@ class Story:
     """
 
     _settings_: WampifySettings
-    _client_: Client
     _wamps_: WAMPIS
     _request_: BaseRequest
+    _endpoint_options_: EndpointOptions
 
 
 current_story_context = ContextVar('current_story_context')

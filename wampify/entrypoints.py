@@ -1,10 +1,10 @@
-from typing import List, Any, Callable, Mapping
+from typing import Any, List, Union, Callable, Mapping
+from functools import partial
 from wampify.story import *
 from wampify.requests import BaseRequest, CallRequest, PublishRequest
 from wampify.endpoints import (
     Endpoint, SharedEndpoint, RegisterEndpoint, SubscribeEndpoint
 )
-from wampify.middlewares import BaseMiddleware
 from wampify.signals import entrypoint_signals
 from wampify.exceptions import SomethingWentWrong
 from wampify.settings import WampifySettings
@@ -46,6 +46,7 @@ class Entrypoint:
         story = create_story()
         story._wamps_ = self._wamps
         story._settings_ = self._settings
+        story._endpoint_options_ = self.endpoint.options
         try:
             await entrypoint_signals.fire('opened', story)
             output = await self.endpoint(*A, **K)
@@ -65,63 +66,44 @@ class Entrypoint:
 
 class SharedEntrypoint(Entrypoint):
 
-    _middleware: BaseMiddleware
+    endpoint: Union[SharedEndpoint, Callable]
+    endpoint_options: EndpointOptions
 
     def __init__(
         self,
         procedure: Callable,
         endpoint_options: Mapping,
         user_settings: WampifySettings,
-        user_middlewares: List[BaseMiddleware],
+        user_middlewares: List[Callable],
         wamps: WAMPIS
     ):
         self._settings = user_settings
         self.endpoint = self._create_endpoint(procedure, endpoint_options)
+        self.endpoint_options = self.endpoint.options
         self._build_responsibility_chain(user_middlewares)
         self._wamps = wamps
 
     def _build_responsibility_chain(
         self,
-        middlewares: List[BaseMiddleware]
-    ) -> BaseMiddleware:
+        middlewares: List[Callable]
+    ) -> None:
         """
-        Build chain of responsibility from passed middlewares
-        Also converts endpoint to executable middleware
-        and append it to chain
+        Build chain of responsibility from passed middlewares, also appends endpoint
+        Method must be executed after endpoint initialization!
         """
         assert isinstance(middlewares, list), 'Must be list of middlewares'
-        endpoint = self.endpoint
+        i = len(middlewares) - 1
+        while i > -1:
+            mw = middlewares[i]
+            self.endpoint = partial(mw, self.endpoint)
+            i -= 1
 
-        self._middleware, it = None, None
-        for m in middlewares:
-            m = m(self._settings, endpoint.options)
-
-            if self._middleware is None and it is None:
-                self._middleware, it = m, m
-                continue
-
-            it.set_next(m)
-            it = m
-
-        class EndpointAsMiddleware(BaseMiddleware):
-
-            async def handle(
-                self,
-                request: BaseRequest
-            ) -> Any:
-                return await endpoint(*request.A, **request.K)
-
-        endpoint_as_middleware = EndpointAsMiddleware(self._settings, endpoint.options)
-
-        if it is None:
-            self._middleware = endpoint_as_middleware
-        else:
-            it.set_next(endpoint_as_middleware)
-
-    def _convert_to_application_level_exception(
+    def _to_application_level_exception(
         self,
         exception: BaseException
     ) -> ApplicationError:
+        """
+        """
         _ename = getattr(exception, '__name__', None)
         if _ename is None:
             _eclass = getattr(exception, '__class__', SomethingWentWrong)
@@ -152,12 +134,13 @@ class SharedEntrypoint(Entrypoint):
         story._wamps_ = self._wamps
         story._settings_ = self._settings
         story._request_ = self._create_request(A, K, D)
+        story._endpoint_options_ = self.endpoint_options
         try:
             await entrypoint_signals.fire('opened', story)
-            output = await self._middleware(story._request_)
+            output = await self.endpoint(story._request_)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
-            raise self._convert_to_application_level_exception(e)
+            raise self._to_application_level_exception(e)
         else:
             await entrypoint_signals.fire('closed', story)
             return output

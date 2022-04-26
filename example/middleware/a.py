@@ -1,6 +1,7 @@
+from typing import Callable
 import asyncio
 from wampify import Wampify
-from wampify.middlewares import BaseMiddleware
+from wampify.story import *
 from wampify.middlewares.timeout import TimeoutMiddleware
 
 
@@ -21,24 +22,60 @@ wampify = Wampify(
 )
 
 
-class TestMiddleware(BaseMiddleware):
+async def FirstCustomMiddleware(
+    next_: Callable,
+    request: BaseRequest
+):
+    print('Im doing something prerequest!')
+    return await next_(request)
 
-    async def handle(
-        self,
-        request
-    ):
-        print(f'client {request.client.i} sent request')
-        return await self.call_next(request)
+async def SecondCustomMiddleware(
+    next_: Callable,
+    request: BaseRequest
+):
+    output = await next_(request)
+    print('Im doing something postrequest!')
+    return output
 
-wampify.add_middleware(TestMiddleware)
+async def ThirdCustomMiddleware(
+    next_: Callable,
+    request: BaseRequest
+):
+    story = get_current_story()
+    enabled = story._endpoint_options_.middlewares.get('third-custom-middleware-enabled', True)
+    if enabled:
+        await story._wamps_.call('com.example.user.exist', id=request.client.i)
+    else:
+        print(f'{request.sent_time} ThirdCustomMiddleware disabled!')
+    return await next_(request)
+
+wampify.add_middleware(FirstCustomMiddleware)
+wampify.add_middleware(SecondCustomMiddleware)
+wampify.add_middleware(ThirdCustomMiddleware)
 wampify.add_middleware(TimeoutMiddleware)
 
 
 @wampify.register(
-    options={'middlewares': {'timeout': {'duration': 1}}}
+    options={'middlewares': {
+        'timeout': {'duration': 1},
+        'third-custom-middleware-enabled': True
+    }}
 )
 async def long():
     await asyncio.sleep(2)
+
+
+@wampify.register(
+    'user.exist',
+    options={'middlewares': {
+        'timeout': {'duration': 1},
+        'third-custom-middleware-enabled': False
+    }}
+)
+async def exist(
+    id
+):
+    return True
 
 
 if __name__ == '__main__':

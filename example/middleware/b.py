@@ -7,9 +7,7 @@ class ClientSession(ApplicationSession):
         print('Session was joined')
 
         # This procedure never executed
-        answer = await self.call(
-            'com.example.long'
-        )
+        answer = await self.call('com.example.long')
 
 
 if __name__ == '__main__':

@@ -41,7 +41,8 @@ class TimedOut(BaseError):
     """
     408
     """
-    cause = 'Timed out'
+    cause = 'Timed out.'
+
 
 class SomethingWentWrong(BaseError):
     """
@@ -51,12 +52,6 @@ class SomethingWentWrong(BaseError):
 
 
 class SerializationError(SomethingWentWrong):
-    """
-    500
-    """
-
-
-class MiddlewareNotBound(SomethingWentWrong):
     """
     500
     """
