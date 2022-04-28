@@ -34,20 +34,22 @@ class Endpoint:
 
     async def execute(
         self,
-        request: BaseRequest
+        *args,
+        **kwargs
     ) -> Any:
         """
         Executes procedure
         """
         if self._is_async:
-            return await self._procedure(*request.A, **request.K)
-        return self._procedure(*request.A, **request.K)
+            return await self._procedure(*args, **kwargs)
+        return self._procedure(*args, **kwargs)
 
     async def __call__(
         self,
-        request: BaseRequest
+        *args,
+        **kwargs
     ) -> Any:
-        return await self.execute(request=request)
+        return await self.execute(*args, **kwargs)
 
 
 class SharedEndpoint(Endpoint):
@@ -76,16 +78,17 @@ class SharedEndpoint(Endpoint):
 
     async def execute(
         self,
-        request: BaseRequest
+        *args,
+        **kwargs
     ) -> Any:
         """
         Validates input data, otherwise raises `InvalidPayload` 
         """
         try:
             if self._is_async:
-                output = await self._procedure(*request.A, **request.K)
+                output = await self._procedure(*args, **kwargs)
             else:
-                output = self._procedure(*request.A, **request.K)
+                output = self._procedure(*args, **kwargs)
         except ValidationError as e:
             cause = self._get_pydantic_validation_error_content(e)
             raise InvalidPayload(*cause)

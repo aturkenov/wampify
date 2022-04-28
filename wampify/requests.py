@@ -1,4 +1,3 @@
-from wampify.client import Client
 from autobahn.wamp import CallDetails, EventDetails
 from datetime import datetime
 from typing import Any, Iterable, Mapping
@@ -8,30 +7,26 @@ class BaseRequest:
     """
     Represents a base request
 
-    - `URI` - 
-    - `A` - requested arguments
-    - `K` - requested keyword arguments
-    - `D` - request details
-    - `sent_time` - 
-    - `client` - requested client (wamp session)
+    - `args` - requested arguments
+    - `kwargs` - requested keyword arguments
+    - `details` - request details
+    - `sent_time` - request sent time
     """
 
-    URI: str
-    A: Iterable[Any]
-    K: Mapping[str, Any]
-    D: Any
+    args: Iterable[Any]
+    kwargs: Mapping[str, Any]
+    details: Any
     sent_time: datetime
-    client: Client
 
     def __init__(
         self,
-        A: Iterable[Any] = [],
-        K: Mapping[str, Any] = {},
-        D = None,
+        args: Iterable[Any] = [],
+        kwargs: Mapping[str, Any] = {},
+        details = None,
     ):
-        self.A = A
-        self.K = K
-        self.D = D
+        self.args = args
+        self.kwargs = kwargs
+        self.details = details
         self.sent_time = datetime.utcnow()
 
 
@@ -40,22 +35,15 @@ class CallRequest(BaseRequest):
     Represents a call request
     """
 
-    D: CallDetails
+    details: CallDetails
 
     def __init__(
         self,
-        A: Iterable[Any] = [],
-        K: Mapping[str, Any] = {},
-        D: CallDetails = None
+        args: Iterable[Any] = [],
+        kwargs: Mapping[str, Any] = {},
+        details: CallDetails = None
     ):
-        super().__init__(A, K, D)
-        if D:
-            self.client = Client(
-                i=D.caller_authid,
-                role=D.caller_authrole,
-                session_i=D.caller
-            )
-            self.URI = D.procedure
+        super().__init__(args, kwargs, details)
 
 
 class PublishRequest(BaseRequest):
@@ -63,20 +51,13 @@ class PublishRequest(BaseRequest):
     Represents a publish request
     """
 
-    D: EventDetails
+    details: EventDetails
 
     def __init__(
         self,
-        A: Iterable[Any] = [],
-        K: Mapping[str, Any] = {},
-        D: EventDetails = None
+        args: Iterable[Any] = [],
+        kwargs: Mapping[str, Any] = {},
+        details: EventDetails = None
     ):
-        super().__init__(A, K, D)
-        if D:
-            self.client = Client(
-                i=D.publisher_authid,
-                role=D.publisher_authrole,
-                session_i=D.publisher
-            )
-            self.URI = D.topic
+        super().__init__(args, kwargs, details)
 

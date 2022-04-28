@@ -1,5 +1,7 @@
 BUGS:
-empty preuri
+
 
 FEATURES:
 reconnecting
+request args kwargs
+error middleware

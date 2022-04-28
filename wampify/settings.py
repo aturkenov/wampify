@@ -68,7 +68,7 @@ class WampifySettings(_BaseModel):
     middlewares: Mapping = {}
 
 
-def get_validated_settings(**K) -> WampifySettings:
+def get_validated_settings(**kwargs) -> WampifySettings:
     """
     Returns validated user settings
     """
@@ -81,7 +81,7 @@ def get_validated_settings(**K) -> WampifySettings:
     class _WampifySettings(WampifySettings):
         wamps: _WampifySessionSettings
 
-    settings = _WampifySettings(**K)
+    settings = _WampifySettings(**kwargs)
 
     if settings.wamps.factory is None:
         settings.wamps.factory = AsyncioWampifySession

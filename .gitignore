@@ -3,4 +3,5 @@
 *.pid
 *.priv
 *.pub
-*.egg*
+dist*/
+wampify.*/

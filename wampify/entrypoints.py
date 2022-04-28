@@ -39,9 +39,9 @@ class Entrypoint:
 
     async def execute(
         self,
-        A = [],
-        K = {},
-        D = None
+        args = [],
+        kwargs = {},
+        details = None
     ) -> Any:
         story = create_story()
         story._wamps_ = self._wamps
@@ -49,7 +49,7 @@ class Entrypoint:
         story._endpoint_options_ = self.endpoint.options
         try:
             await entrypoint_signals.fire('opened', story)
-            output = await self.endpoint(*A, **K)
+            output = await self.endpoint(*args, **kwargs)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
         else:
@@ -58,10 +58,10 @@ class Entrypoint:
 
     async def __call__(
         self,
-        *A,
-        **K
+        *args,
+        **kwargs
     ) -> Any:
-        return await self.execute(*A, **K)
+        return await self.execute(*args, **kwargs)
 
 
 class SharedEntrypoint(Entrypoint):
@@ -103,6 +103,16 @@ class SharedEntrypoint(Entrypoint):
         exception: BaseException
     ) -> ApplicationError:
         """
+        Generates `autobahn.wamp.exceptions.ApplicationError`
+        from user exception
+
+        Example:
+        >>> class Denied(BaseException):
+        >>>     cause = 'Service Denied!'
+        >>>
+        >>> # ApplicationError(
+        >>> #     'com.example.error.denied', 'Service Denied!'
+        >>> # )
         """
         _ename = getattr(exception, '__name__', None)
         if _ename is None:
@@ -126,30 +136,30 @@ class SharedEntrypoint(Entrypoint):
 
     async def execute(
         self,
-        A = [],
-        K = {},
-        D = None
+        args = [],
+        kwargs = {},
+        details = None
     ) -> Any:
         story = create_story()
         story._wamps_ = self._wamps
         story._settings_ = self._settings
-        story._request_ = self._create_request(A, K, D)
+        story._request_ = self._create_request(args, kwargs, details)
         story._endpoint_options_ = self.endpoint_options
         try:
             await entrypoint_signals.fire('opened', story)
             output = await self.endpoint(story._request_)
+            await entrypoint_signals.fire('closed', story)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
             raise self._to_application_level_exception(e)
         else:
-            await entrypoint_signals.fire('closed', story)
             return output
 
     def _create_request(
         self,
-        A,
-        K,
-        D
+        args = [],
+        kwargs = {},
+        details = None
     ) -> BaseRequest: ...
 
 
@@ -164,11 +174,11 @@ class CallEntrypoint(SharedEntrypoint):
 
     def _create_request(
         self,
-        A,
-        K,
-        D
+        args,
+        kwargs,
+        details
     ) -> CallRequest:
-        return CallRequest(A, K, D)
+        return CallRequest(args, kwargs, details)
 
 
 class PublishEntrypoint(SharedEntrypoint):
@@ -182,9 +192,9 @@ class PublishEntrypoint(SharedEntrypoint):
 
     def _create_request(
         self,
-        A,
-        K,
-        D
+        args,
+        kwargs,
+        details
     ) -> PublishRequest:
-        return PublishRequest(A, K, D)
+        return PublishRequest(args, kwargs, details)
 

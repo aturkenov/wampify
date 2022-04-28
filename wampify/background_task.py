@@ -16,12 +16,12 @@ class BackgroundTasks:
     def add(
         self,
         task: Callable,
-        *A: Iterable,
-        **K: Mapping
+        *args: Iterable,
+        **kwargs: Mapping
     ) -> None:
         """
         """
-        _ = task, A, K
+        _ = task, args, kwargs
         self._T.append(_)
 
     def get_list(

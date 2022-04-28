@@ -49,17 +49,17 @@ class SignalManager:
     async def fire(
         self,
         signal_name: str,
-        *A,
-        **KW
+        *args,
+        **kwargs
     ) -> None:
         P = self._S.get(signal_name, [])
         C = []
         for procedure in P:
             if is_async(procedure):
-                c = procedure(*A, **KW)
+                c = procedure(*args, **kwargs)
                 C.append(c)
             else:
-                procedure(*A, **KW)
+                procedure(*args, **kwargs)
         await asyncio.gather(*C)
 
 

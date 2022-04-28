@@ -74,3 +74,8 @@ class WAMPCouldNotParseMessage(SomethingWentWrong):
     500
     """
 
+
+class ExceededRetryCount(Exception):
+    """
+    """
+

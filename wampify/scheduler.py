@@ -46,11 +46,11 @@ def _initialize_scheduler_process(
 
     def call_async(
         __procedure__,
-        *A: Iterable,
-        **K: Mapping
+        *args: Iterable,
+        **kwargs: Mapping
     ):
         loop = asyncio.new_event_loop()
-        loop.run_until_complete(__procedure__(*A, **K))
+        loop.run_until_complete(__procedure__(*args, **kwargs))
 
     for j in wampify.schedule.get_jobs():
         entrypoint = Entrypoint(j.procedure, wampify.settings, None)
