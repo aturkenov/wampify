@@ -79,21 +79,19 @@ class SharedEndpoint(Endpoint):
     async def execute(
         self,
         *args,
-        **kwargs
+        request: BaseRequest = None,
+        **kwargs,
     ) -> Any:
         """
         Validates input data, otherwise raises `InvalidPayload` 
         """
+        if isinstance(request, BaseRequest):
+            args, kwargs = request.args, request.kwargs
         try:
-            if self._is_async:
-                output = await self._procedure(*args, **kwargs)
-            else:
-                output = self._procedure(*args, **kwargs)
+            return await super().execute(*args, **kwargs)
         except ValidationError as e:
             cause = self._get_pydantic_validation_error_content(e)
             raise InvalidPayload(*cause)
-        else:
-            return output
 
 
 class RegisterEndpoint(SharedEndpoint): ...

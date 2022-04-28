@@ -2,7 +2,6 @@ from typing import Any
 import logging
 from datetime import datetime, timedelta
 import asyncio
-from wampify.signals import wamps_signals, entrypoint_signals
 
 
 logger = logging.getLogger('wampify')
@@ -12,7 +11,9 @@ def mount(
     wampify
 ) -> None:
     from wampify.story import Story
+    from wampify.signals import wamps_signals, entrypoint_signals
     from wampify.requests import CallRequest, PublishRequest
+    from wampify.exceptions import InvalidPayload
 
     def calculate_runtime(
         story: Story
@@ -41,7 +42,7 @@ def mount(
 
     def get_client_name(
         story: Story
-    ) -> Any:
+    ) -> str:
         caller = getattr(story._request_.details, 'caller_authid', None)
         publisher = getattr(story._request_.details, 'publisher_authid', None)
         return caller or publisher
@@ -63,6 +64,7 @@ def mount(
         wamps,
         details
     ):
+        wamps.log._set_log_level('error')
         logger.info('WAMP Session joined')
 
     @wamps_signals.on
@@ -79,17 +81,27 @@ def mount(
     ):
         if type(e) == asyncio.CancelledError:
             logger.warning(
-                f'W {calculate_runtime(story)} '
-                f'{get_client_name(story)} '
+                f'C '
                 f'{get_method_name(story)} '
-                f'{get_uri(story)} {get_request_arguments(story)}'
+                f'{calculate_runtime(story).center(6)} '
+                f'{get_client_name(story).center(36)} '
+                f'{get_uri(story)}{get_request_arguments(story)}'
+            )
+        elif type(e) == InvalidPayload:
+            logger.warning(
+                f'W '
+                f'{get_method_name(story)} '
+                f'{calculate_runtime(story).center(6)} '
+                f'{get_client_name(story).center(36)} '
+                f'{get_uri(story)}{get_request_arguments(story)}'
             )
         elif hasattr(story, '_request_'):
             logger.exception(
-                f'{calculate_runtime(story)} '
-                f'{get_client_name(story)} '
+                f'E '
                 f'{get_method_name(story)} '
-                f'{get_uri(story)} {get_request_arguments(story)}'
+                f'{calculate_runtime(story).center(6)} '
+                f'{get_client_name(story).center(36)} '
+                f'{get_uri(story)}{get_request_arguments(story)}'
             )
         else:
             logger.exception('something went wrong')
@@ -100,9 +112,10 @@ def mount(
     ):
         if hasattr(story, '_request_'):
             logger.info(
-                f'{calculate_runtime(story)} '
-                f'{get_client_name(story)} ;) '
+                f'I '
                 f'{get_method_name(story)} '
+                f'{calculate_runtime(story).center(6)} '
+                f'{get_client_name(story).center(36)} '
                 f'{get_uri(story)}(...) '
             )
 

@@ -109,10 +109,11 @@ class SharedEntrypoint(Entrypoint):
         Example:
         >>> class Denied(BaseException):
         >>>     cause = 'Service Denied!'
-        >>>
-        >>> # ApplicationError(
-        >>> #     'com.example.error.denied', 'Service Denied!'
-        >>> # )
+
+        Returns:
+        >>> ApplicationError(
+        >>>     'com.example.error.denied', 'Service Denied!'
+        >>> )
         """
         _ename = getattr(exception, '__name__', None)
         if _ename is None:
@@ -143,11 +144,11 @@ class SharedEntrypoint(Entrypoint):
         story = create_story()
         story._wamps_ = self._wamps
         story._settings_ = self._settings
-        story._request_ = self._create_request(args, kwargs, details)
+        story._request_ = self._create_request(args=args, kwargs=kwargs, details=details)
         story._endpoint_options_ = self.endpoint_options
         try:
             await entrypoint_signals.fire('opened', story)
-            output = await self.endpoint(story._request_)
+            output = await self.endpoint(request=story._request_)
             await entrypoint_signals.fire('closed', story)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
