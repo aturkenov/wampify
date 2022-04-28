@@ -55,7 +55,7 @@ class Entrypoint:
         story._endpoint_options_ = self.endpoint.options
         try:
             await entrypoint_signals.fire('opened', story)
-            output = await self.endpoint(*args, **kwargs)
+            output = await self.endpoint(args, kwargs)
             await entrypoint_signals.fire('closed', story)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
@@ -90,6 +90,12 @@ class SharedEntrypoint(Entrypoint):
         self.endpoint_options = self.endpoint.options
         self._build_responsibility_chain(user_middlewares)
         self._wamps = wamps
+
+    def _create_endpoint(
+        self,
+        procedure: Callable,
+        options: Mapping
+    ) -> SharedEndpoint: ...
 
     def _build_responsibility_chain(
         self,
@@ -136,12 +142,6 @@ class SharedEntrypoint(Entrypoint):
         else:
             ecause = getattr(exception, 'cause', SomethingWentWrong.cause)
             return ApplicationError(error_code, ecause)
-
-    def _create_endpoint(
-        self,
-        procedure: Callable,
-        options: Mapping
-    ) -> SharedEndpoint: ...
 
     async def execute(
         self,
