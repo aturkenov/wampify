@@ -1,5 +1,6 @@
 from typing import Any, List, Union, Callable, Mapping
 from functools import partial
+from asyncio.exceptions import CancelledError
 from wampify.story import *
 from wampify.requests import BaseRequest, CallRequest, PublishRequest
 from wampify.endpoints import (
@@ -26,14 +27,19 @@ class Entrypoint:
     endpoint: Endpoint 
     _settings: WampifySettings
     _wamps: WAMPIS
+    _exceptions_to_skip = (
+        CancelledError,
+    )
 
     def __init__(
         self,
         procedure: Callable,
+        endpoint_options: Mapping,
         user_settings: WampifySettings,
         wamps: WAMPIS
     ) -> None:
-        self.endpoint = Endpoint(procedure)
+        self.endpoint = Endpoint(procedure, endpoint_options)
+        self.endpoint_options = self.endpoint.options
         self._settings = user_settings
         self._wamps = wamps
 
@@ -50,10 +56,12 @@ class Entrypoint:
         try:
             await entrypoint_signals.fire('opened', story)
             output = await self.endpoint(*args, **kwargs)
+            await entrypoint_signals.fire('closed', story)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
+            if type(e) not in self._exceptions_to_skip:
+                raise e
         else:
-            await entrypoint_signals.fire('closed', story)
             return output
 
     async def __call__(
@@ -152,7 +160,8 @@ class SharedEntrypoint(Entrypoint):
             await entrypoint_signals.fire('closed', story)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
-            raise self._to_application_level_exception(e)
+            if type(e) not in self._exceptions_to_skip:
+                raise self._to_application_level_exception(e)
         else:
             return output
 

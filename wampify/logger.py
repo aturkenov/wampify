@@ -77,7 +77,7 @@ def mount(
     @entrypoint_signals.on
     def raised(
         story: Story,
-        e
+        e: Exception
     ):
         if type(e) == asyncio.CancelledError:
             logger.warning(
@@ -93,7 +93,7 @@ def mount(
                 f'{get_method_name(story)} '
                 f'{calculate_runtime(story).center(6)} '
                 f'{get_client_name(story).center(36)} '
-                f'{get_uri(story)}{get_request_arguments(story)}'
+                f'{get_uri(story)}{get_request_arguments(story)} -> {e.__class__.__name__}'
             )
         elif hasattr(story, '_request_'):
             logger.exception(

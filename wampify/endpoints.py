@@ -3,7 +3,7 @@ from wampify.requests import BaseRequest
 from wampify.exceptions import InvalidPayload
 from inspect import iscoroutinefunction as is_async
 from pydantic import validate_arguments, ValidationError
-from typing import Callable, Iterable, Mapping, List, Any
+from typing import Callable, Mapping, List, Any
 
 
 class Endpoint:
