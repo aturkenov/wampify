@@ -1,5 +1,6 @@
 from typing import Any, List, Union, Callable, Mapping
 from functools import partial
+from asyncio.exceptions import CancelledError
 from wampify.story import *
 from wampify.requests import BaseRequest, CallRequest, PublishRequest
 from wampify.endpoints import (
@@ -10,7 +11,7 @@ from wampify.exceptions import SomethingWentWrong
 from wampify.settings import WampifySettings
 from autobahn.wamp import ISession as WAMPIS
 from autobahn.wamp.exception import ApplicationError
-from .shared.camel_to_snake import camel_to_snake
+from wampify.shared.camel_to_snake import camel_to_snake
 
 
 class Entrypoint:
@@ -26,22 +27,27 @@ class Entrypoint:
     endpoint: Endpoint 
     _settings: WampifySettings
     _wamps: WAMPIS
+    _exceptions_to_skip = (
+        CancelledError,
+    )
 
     def __init__(
         self,
         procedure: Callable,
+        endpoint_options: Mapping,
         user_settings: WampifySettings,
         wamps: WAMPIS
     ) -> None:
-        self.endpoint = Endpoint(procedure)
+        self.endpoint = Endpoint(procedure, endpoint_options)
+        self.endpoint_options = self.endpoint.options
         self._settings = user_settings
         self._wamps = wamps
 
     async def execute(
         self,
-        A = [],
-        K = {},
-        D = None
+        args = [],
+        kwargs = {},
+        details = None
     ) -> Any:
         story = create_story()
         story._wamps_ = self._wamps
@@ -49,19 +55,21 @@ class Entrypoint:
         story._endpoint_options_ = self.endpoint.options
         try:
             await entrypoint_signals.fire('opened', story)
-            output = await self.endpoint(*A, **K)
+            output = await self.endpoint(*args, **kwargs)
+            await entrypoint_signals.fire('closed', story)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
+            if type(e) not in self._exceptions_to_skip:
+                raise e
         else:
-            await entrypoint_signals.fire('closed', story)
             return output
 
     async def __call__(
         self,
-        *A,
-        **K
+        *args,
+        **kwargs
     ) -> Any:
-        return await self.execute(*A, **K)
+        return await self.execute(*args, **kwargs)
 
 
 class SharedEntrypoint(Entrypoint):
@@ -103,6 +111,17 @@ class SharedEntrypoint(Entrypoint):
         exception: BaseException
     ) -> ApplicationError:
         """
+        Generates `autobahn.wamp.exceptions.ApplicationError`
+        from user exception
+
+        Example:
+        >>> class Denied(BaseException):
+        >>>     cause = 'Service Denied!'
+
+        Returns:
+        >>> ApplicationError(
+        >>>     'com.example.error.denied', 'Service Denied!'
+        >>> )
         """
         _ename = getattr(exception, '__name__', None)
         if _ename is None:
@@ -126,30 +145,31 @@ class SharedEntrypoint(Entrypoint):
 
     async def execute(
         self,
-        A = [],
-        K = {},
-        D = None
+        args = [],
+        kwargs = {},
+        details = None
     ) -> Any:
         story = create_story()
         story._wamps_ = self._wamps
         story._settings_ = self._settings
-        story._request_ = self._create_request(A, K, D)
+        story._request_ = self._create_request(args=args, kwargs=kwargs, details=details)
         story._endpoint_options_ = self.endpoint_options
         try:
             await entrypoint_signals.fire('opened', story)
-            output = await self.endpoint(story._request_)
+            output = await self.endpoint(request=story._request_)
+            await entrypoint_signals.fire('closed', story)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
-            raise self._to_application_level_exception(e)
+            if type(e) not in self._exceptions_to_skip:
+                raise self._to_application_level_exception(e)
         else:
-            await entrypoint_signals.fire('closed', story)
             return output
 
     def _create_request(
         self,
-        A,
-        K,
-        D
+        args = [],
+        kwargs = {},
+        details = None
     ) -> BaseRequest: ...
 
 
@@ -164,11 +184,11 @@ class CallEntrypoint(SharedEntrypoint):
 
     def _create_request(
         self,
-        A,
-        K,
-        D
+        args,
+        kwargs,
+        details
     ) -> CallRequest:
-        return CallRequest(A, K, D)
+        return CallRequest(args, kwargs, details)
 
 
 class PublishEntrypoint(SharedEntrypoint):
@@ -182,9 +202,9 @@ class PublishEntrypoint(SharedEntrypoint):
 
     def _create_request(
         self,
-        A,
-        K,
-        D
+        args,
+        kwargs,
+        details
     ) -> PublishRequest:
-        return PublishRequest(A, K, D)
+        return PublishRequest(args, kwargs, details)
 

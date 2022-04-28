@@ -1,13 +1,13 @@
-import setuptools
+from setuptools import setup
 
 
 with open('./README.md', 'r', encoding='utf-8') as file:
     long_description = file.read()
 
 
-setuptools.setup(
+setup(
     name='wampify',
-    version='0.1.0',
+    version='0.1.1',
     author='Aidar Turkenov',
     author_email='a.k.turken0v@gmail.com',
     description='Web Application Messaging Protocol Framework',
@@ -33,7 +33,7 @@ setuptools.setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
-    packages=setuptools.find_packages(where='.'),
+    packages=['wampify', 'wampify.shared', 'wampify.middlewares'],
     install_requires=[
         'autobahn',
         'pydantic'

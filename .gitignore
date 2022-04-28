@@ -3,3 +3,5 @@
 *.pid
 *.priv
 *.pub
+dist*/
+wampify.*/

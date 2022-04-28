@@ -61,17 +61,17 @@ class WAMPClient:
     async def call(
         self,
         uri: str,
-        *A,
+        *args,
         options: Mapping = {},
-        **K
+        **kwargs
     ):
         """
         """
         body = { 'procedure': uri }
-        if A:
-            body['args'] = A
-        if K:
-            body['kwargs'] = K
+        if args:
+            body['args'] = args
+        if kwargs:
+            body['kwargs'] = kwargs
         if options:
             assert type(options) == dict
             body['options'] = options
@@ -95,17 +95,17 @@ class WAMPClient:
     async def publish(
         self,
         uri: str,
-        *A,
+        *args,
         options: Mapping = {},
-        **K
+        **kwargs
     ):
         """
         """
         body = { 'topic': uri }
-        if A:
-            body['args'] = A
-        if K:
-            body['kwargs'] = K
+        if args:
+            body['args'] = args
+        if kwargs:
+            body['kwargs'] = kwargs
         if options:
             assert type(options) == dict
             body['options'] = options

@@ -75,11 +75,11 @@ class Wampify:
         )
 
         async def on_call(
-            *A,
+            *args,
             _CALL_DETAILS_: CallDetails,
-            **K,
+            **kwargs,
         ):
-            return await entrypoint(A, K, _CALL_DETAILS_)
+            return await entrypoint(args=args, kwargs=kwargs, details=_CALL_DETAILS_)
 
         _uri = uri if without_preuri else f'{self.settings.preuri}.{uri}'
         _options = { k: options.get(k, None) for k in RegisterOptions.__slots__ }
@@ -113,11 +113,11 @@ class Wampify:
         )
 
         async def on_publish(
-            *A,
+            *args,
             _PUBLISH_DETAILS_: EventDetails,
-            **K,
+            **kwargs,
         ):
-            return await entrypoint(A, K, _PUBLISH_DETAILS_)
+            return await entrypoint(args=args, kwargs=kwargs, details=_PUBLISH_DETAILS_)
 
         _uri = uri if without_preuri else f'{self.settings.preuri}.{uri}'
         _options = { k: options.get(k, None) for k in SubscribeOptions.__slots__ }
@@ -205,8 +205,8 @@ class Wampify:
         Returns: None
         """
         def create_session(
-            *A,
-            **K
+            *args,
+            **kwargs
         ) -> WAMPIS:
             return self.session
         assert type(self.settings.router.url) == str, 'URL is required'
