@@ -3,6 +3,7 @@ import asyncio
 from wampify import Wampify
 from wampify.story import *
 from wampify.middlewares.timeout import TimeoutMiddleware
+from contextlib import suppress
 
 
 wampify = Wampify(
@@ -57,12 +58,15 @@ wampify.add_middleware(TimeoutMiddleware)
 
 @wampify.register(
     options={'middlewares': {
-        'timeout': {'duration': 1},
+        # 'timeout': {'duration': 1},
         'third-custom-middleware-enabled': True
     }}
 )
 async def long():
-    await asyncio.sleep(2)
+    try:
+        await asyncio.sleep(10)
+    except:
+        print('Catched!')
 
 
 @wampify.register(

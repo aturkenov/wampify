@@ -1,7 +1,7 @@
 from wampify import Wampify
 
 
-def wamps_on_challenge(session, challange):
+def wamps_on_challenge(challange):
     return 'secret'
 
 

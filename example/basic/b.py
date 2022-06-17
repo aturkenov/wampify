@@ -57,7 +57,7 @@ class ClientSession(ApplicationSession):
             await self.call('com.example.pow', 'a')
         except Exception as e:
             print('com.example.pow("a") ->', e)
-            # PayloadValidationError!
+            # InvalidPayload!
 
 
 if __name__ == '__main__':

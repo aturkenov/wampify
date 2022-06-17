@@ -1,7 +1,9 @@
-from wampify import Wampify
+from sys import path
+path.append('/home/aidar/')
+from wampify.wampify import Wampify
 
 
-def wamps_on_challenge(session, challange):
+def wamps_on_challenge(challange):
     return 'secret'
 
 

@@ -1,4 +1,5 @@
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
+from async_timeout import timeout
 
 
 class ClientSession(ApplicationSession):
@@ -7,7 +8,8 @@ class ClientSession(ApplicationSession):
         print('Session was joined')
 
         # This procedure never executed
-        answer = await self.call('com.example.long')
+        async with timeout(1):
+            answer = await self.call('com.example.long')
 
 
 if __name__ == '__main__':
