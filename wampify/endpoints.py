@@ -1,6 +1,5 @@
 from typing import Callable, Iterable, Mapping, List, Any
 from wampify.settings import EndpointOptions
-from wampify.requests import BaseRequest
 from wampify.exceptions import InvalidPayload
 from inspect import iscoroutinefunction as is_async
 from pydantic import validate_arguments, ValidationError
@@ -56,12 +55,6 @@ class SharedEndpoint(Endpoint):
     """
     """
 
-    def _get_pydantic_validation_error_content(
-        self,
-        e: ValidationError
-    ) -> List:
-        return e.errors()
-
     def setup_procedure(
         self,
         procedure: Callable,
@@ -84,14 +77,12 @@ class SharedEndpoint(Endpoint):
         """
         Validates input data, otherwise raises `InvalidPayload` 
         """
-        request = args
-        if isinstance(request, BaseRequest):
-            args, kwargs = request.args, request.kwargs
         try:
             return await super().execute(args=args, kwargs=kwargs)
         except ValidationError as e:
-            cause = self._get_pydantic_validation_error_content(e)
-            raise InvalidPayload(*cause)
+            if hasattr(self._procedure, 'model') and e.model is self._procedure.model:
+                raise InvalidPayload(*e.errors())
+            raise e
 
 
 class RegisterEndpoint(SharedEndpoint): ...

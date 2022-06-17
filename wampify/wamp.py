@@ -10,15 +10,15 @@ class WAMPBucket:
     """
 
     # register uri: procedure, options
-    _R: List[Tuple[str, Callable, Mapping]]
+    _registered: List[Tuple[str, Callable, Mapping]]
     # subscribe uri: procedure, options
-    _S: List[Tuple[str, Callable, Mapping]]
+    _subscribed: List[Tuple[str, Callable, Mapping]]
 
     def __init__(
         self
     ):
-        self._R = []
-        self._S = []
+        self._registered = []
+        self._subscribed = []
 
     def add_register(
         self,
@@ -29,7 +29,7 @@ class WAMPBucket:
         """
         Adds register procdure
         """
-        self._R.append((URI, procedure, options))
+        self._registered.append((URI, procedure, options))
 
     def add_subscribe(
         self,
@@ -40,23 +40,25 @@ class WAMPBucket:
         """
         Adds susbscribe procedure
         """
-        self._S.append((URI, procedure, options))
+        self._subscribed.append((URI, procedure, options))
 
-    def get_registered(
+    @property
+    def registered(
         self
     ) -> List[Tuple[str, Callable, Mapping[str, Any]]]:
         """
         Returns all registered procedures with uri and register options
         """
-        return self._R
+        return self._registered
 
-    def get_subscribed(
+    @property
+    def subscribed(
         self
     ) -> List[Tuple[str, Callable, Mapping[str, Any]]]:
         """
         Returns all subscribed procedures with uri and subscribe options
         """
-        return self._S
+        return self._subscribed
 
 
 class AsyncioWampifySession(AsyncioApplicationSession):
@@ -65,6 +67,18 @@ class AsyncioWampifySession(AsyncioApplicationSession):
 
     _bucket: WAMPBucket
     _settings: WampifySessionSettings
+
+    def __init__(
+        self,
+        *args,
+        wampify_session_settings: WampifySessionSettings,
+        wampify_bucket: WAMPBucket,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self._settings = wampify_session_settings
+        self.onChallenge = wampify_session_settings.on_challenge
+        self._bucket = wampify_bucket
 
     async def onConnect(
         self
@@ -88,12 +102,12 @@ class AsyncioWampifySession(AsyncioApplicationSession):
     ):
         """
         """
-        for I, F, O in self._bucket.get_registered():
+        for I, F, O in self._bucket.registered:
             await self.register(F, I, RegisterOptions(**O))
             if self._settings.show_registered:
                 print(f'{I} registered')
 
-        for I, F, O in self._bucket.get_subscribed():
+        for I, F, O in self._bucket.subscribed:
             await self.subscribe(F, I, SubscribeOptions(**O))
             if self._settings.show_registered:
                 print(f'{I} subscribed')

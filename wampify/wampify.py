@@ -20,23 +20,17 @@ class Wampify:
     """
 
     settings: WampifySettings
-    wamps_factory: WAMPIS
     session: Union[WAMPIS, None]
-    _middlewares: List[Callable]
+    middlewares: List[Callable]
     _bucket: WAMPBucket
 
     def __init__(
         self,
         **KW
     ) -> None:
-        self._middlewares = []
+        self.middlewares = []
         self.settings = get_validated_settings(**KW)
-        self.wamps_factory = self.settings.wamps.factory
-        self.session = self.wamps_factory()
-        self.session._settings = self.settings.wamps
         self._bucket = WAMPBucket()
-        self.session._bucket = self._bucket
-        self.session.onChallenge = self.settings.wamps.on_challenge
         logger.mount(self)
 
     def add_middleware(
@@ -47,20 +41,18 @@ class Wampify:
         Adds custom middleware
         """
         assert callable(m), 'Middleware must be Callable'
-        self._middlewares.append(m)
+        self.middlewares.append(m)
 
     def add_register(
         self,
         uri: str,
         procedure: Callable,
-        options: Mapping = {},
-        without_preuri: bool = False
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds register procedure
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
-        - `without_preuri`: `bool` 
 
         Returns passed procedure
 
@@ -69,10 +61,7 @@ class Wampify:
         >>>
         >>> wampify.add_register('pow', pow)
         """
-        entrypoint = CallEntrypoint(
-            procedure, options, self.settings,
-            self._middlewares, self.session
-        )
+        entrypoint = CallEntrypoint(self, procedure, options)
 
         async def on_call(
             *args,
@@ -81,7 +70,7 @@ class Wampify:
         ):
             return await entrypoint(args=args, kwargs=kwargs, details=_CALL_DETAILS_)
 
-        _uri = uri if without_preuri else f'{self.settings.preuri}.{uri}'
+        _uri = f'{self.settings.preuri}{uri}' if uri.startswith('.') else uri
         _options = { k: options.get(k, None) for k in RegisterOptions.__slots__ }
         _options['details_arg'] = '_CALL_DETAILS_'
         self._bucket.add_register(_uri, on_call, _options)
@@ -91,14 +80,12 @@ class Wampify:
         self,
         uri: str,
         procedure: Callable,
-        options: Mapping = {},
-        without_preuri: bool = False
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds subscribe procedure
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
-        - `without_preuri`: `bool` 
 
         Returns passed procedure
 
@@ -107,10 +94,7 @@ class Wampify:
         >>>
         >>> wampify.add_subscribe('hello', on_hello)
         """
-        entrypoint = PublishEntrypoint(
-            procedure, options, self.settings,
-            self._middlewares, self.session
-        )
+        entrypoint = PublishEntrypoint(self, procedure, options)
 
         async def on_publish(
             *args,
@@ -119,7 +103,7 @@ class Wampify:
         ):
             return await entrypoint(args=args, kwargs=kwargs, details=_PUBLISH_DETAILS_)
 
-        _uri = uri if without_preuri else f'{self.settings.preuri}.{uri}'
+        _uri = f'{self.settings.preuri}{uri}' if uri.startswith('.') else uri
         _options = { k: options.get(k, None) for k in SubscribeOptions.__slots__ }
         _options['details_arg'] = '_PUBLISH_DETAILS_'
         self._bucket.add_subscribe(_uri, on_publish, _options)
@@ -129,8 +113,7 @@ class Wampify:
         self,
         uri: Union[str, Callable] = None,
         *,
-        options: Mapping = {},
-        without_preuri: bool = False
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds register procedure as decorator
@@ -138,7 +121,6 @@ class Wampify:
         Uses procedure name if `uri` is not passed
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
-        - `without_preuri`: `bool`
 
         Returns passed procedure
 
@@ -146,16 +128,16 @@ class Wampify:
         >>> async def pow(x: float = 1):
         >>>     return x ** 2
         """
+        if callable(uri):
+            _uri, procedure = f'.{uri.__name__}', uri
+            self.add_register(_uri, procedure, options)
+            return procedure
+
         def decorate(
             procedure: Callable
         ):
-            _uri = procedure.__name__ if uri is None else uri
-            self.add_register(_uri, procedure, options, without_preuri)
-            return procedure
-
-        if callable(uri):
-            _uri, procedure = uri.__name__, uri
-            self.add_register(_uri, procedure, options, without_preuri)
+            _uri = f'.{procedure.__name__}' if uri is None else uri
+            self.add_register(_uri, procedure, options)
             return procedure
         return decorate
 
@@ -163,8 +145,7 @@ class Wampify:
         self,
         uri: Union[str, Callable] = None,
         *,
-        options: Mapping = {},
-        without_preuri: bool = False
+        options: Mapping = {}
     ) -> Callable:
         """
         Adds subscribe procedure as decorator
@@ -172,7 +153,6 @@ class Wampify:
         Uses procedure name if `uri` is not passed
 
         - `options`: `EndpointOptions` (go to wampify/settings.py)
-        - `without_preuri`: `bool` 
 
         Returns passed procedure
 
@@ -180,16 +160,16 @@ class Wampify:
         >>> async def hello(name = 'Anonymous'):
         >>>     print(f'{name} you are welcome!')
         """
+        if callable(uri):
+            _uri, procedure = f'.{uri.__name__}', uri
+            self.add_subscribe(_uri, procedure, options)
+            return procedure
+
         def decorate(
             procedure: Callable
         ):
-            _uri = procedure.__name__ if uri is None else uri
-            self.add_subscribe(_uri, procedure, options, without_preuri)
-            return procedure
-
-        if callable(uri):
-            _uri, procedure = uri.__name__, uri
-            self.add_subscribe(_uri, procedure, options, without_preuri)
+            _uri = f'.{procedure.__name__}' if uri is None else uri
+            self.add_subscribe(_uri, procedure, options)
             return procedure
         return decorate
 
@@ -208,7 +188,14 @@ class Wampify:
             *args,
             **kwargs
         ) -> WAMPIS:
+            self.session = self.settings.wamps.factory(
+                *args,
+                wampify_session_settings=self.settings.wamps,
+                wampify_bucket=self._bucket,
+                **kwargs
+            )
             return self.session
+
         assert type(self.settings.router.url) == str, 'URL is required'
         runner = ApplicationRunner(self.settings.router.url)
         if start_loop is None:

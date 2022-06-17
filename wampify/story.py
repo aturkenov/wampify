@@ -1,7 +1,10 @@
-from wampify.requests import BaseRequest
-from wampify.settings import WampifySettings, EndpointOptions
-from autobahn.wamp import ISession as WAMPIS
+from typing import TYPE_CHECKING
 from contextvars import ContextVar
+from autobahn.wamp import ISession as WAMPIS
+if TYPE_CHECKING:
+    from wampify.requests import BaseRequest
+    from wampify.endpoints import Endpoint
+    from wampify.settings import WampifySettings
 
 
 class Story:
@@ -9,10 +12,10 @@ class Story:
     Represents
     """
 
-    _settings_: WampifySettings
     _wamps_: WAMPIS
-    _request_: BaseRequest
-    _endpoint_options_: EndpointOptions
+    _request_: 'BaseRequest'
+    _endpoint_: 'Endpoint'
+    _settings_: 'WampifySettings'
 
 
 current_story_context = ContextVar('current_story_context')
