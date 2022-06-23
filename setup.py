@@ -36,7 +36,8 @@ setup(
     packages=['wampify', 'wampify.shared', 'wampify.middlewares'],
     install_requires=[
         'autobahn',
-        'pydantic'
+        'pydantic',
+        'loguru'
     ],
     python_requires='>=3.6',
 )
