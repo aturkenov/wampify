@@ -6,23 +6,24 @@ from loguru import logger
 
 
 if TYPE_CHECKING:
-    from autobahn.wamp import ISession as WAMPIS, SessionDetails
+    from autobahn.wamp import ISession as WAMPIS, SessionDetails, CloseDetails
     from wampify.story import Story
     from wampify.wampify import Wampify
 
 
 class SessionStats:
+    id: int = None
     wamps_joined_time: Union[datetime, None] = None
-    rpc_count = 0
-    rpc_error_count = 0
-    pns_count = 0
-    pns_error_count= 0
+    rpc_count: int = 0
+    rpc_error_count: int = 0
+    pns_count: int = 0
+    pns_error_count: int = 0
     max_runtime: Union[timedelta, None] = None
     min_runtime: Union[timedelta, None] = None
     avg_runtime: Union[timedelta, None] = None
 
     @property
-    def session_lifetime(self):
+    def lifetime(self):
         if self.wamps_joined_time is None:
             return None
         return datetime.now() - self.wamps_joined_time
@@ -123,17 +124,19 @@ def mount(
         wamps: 'WAMPIS',
         details: 'SessionDetails'
     ):
+        stats.id = details.session
+        stats.wamps_joined_time = datetime.now()
+
         ON_WAMP_SESSION_JOIN_TEXT = '\n'\
             '<g><b>WAMP Session Joined!</b></g>\n'\
             '<b>Current Time</b>:              {current_time}\n'\
             '<b>Transport</b>:                 {transport}\n'\
             '<b>Router URL</b>:                {router_url}\n'\
             '<b>Realm</b>:                     {realm}\n'\
-            '<b>Session Number</b>:            {session}\n'\
+            '<b>Session</b>:                   {session}\n'\
             '<b>Role</b>:                      {role}\n'\
             '<b>AUTHID</b>:                    {authid}\n'
 
-        stats.wamps_joined_time = datetime.now()
         logger.opt(raw=True, colors=True)\
             .warning(
                 ON_WAMP_SESSION_JOIN_TEXT,
@@ -149,24 +152,24 @@ def mount(
     @wamps_signals.on
     def leaved(
         wamps: 'WAMPIS',
-        details: 'SessionDetails'
+        details: 'CloseDetails'
     ):
-
         ON_WAMP_SESSION_LEAVE_TEXT = '\n'\
             '<r><b>WAMP Session Leaved!</b></r>\n'\
+            '<b>Current Time</b>:             {current_time}\n'\
             '<b>Session Lifetime</b>          {session_lifetime}\n'\
-            '<b>Session Number</b>:            {session}\n'
+            '<b>Session</b>:                  {session}\n'\
+            '<b>Closing Reason</b>:           {close_reason}\n'\
+            '<b>Closing Message</b>:          {close_message}\n'\
 
         logger.opt(raw=True, colors=True)\
             .warning(
                 ON_WAMP_SESSION_LEAVE_TEXT,
-                session_lifetime=stats.session_lifetime,
-                router_url=wampify.settings.router.url,
-                realm=details.realm,
-                role=details.authrole,
-                session=details.session,
-                authid=details.authid,
-                transport=details.transport,
+                current_time=datetime.now(),
+                session_lifetime=stats.lifetime,
+                session=stats.id,
+                close_reason=details.reason,
+                close_message=details.message,
             )
 
     @entrypoint_signals.on
