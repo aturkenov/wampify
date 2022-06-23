@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timedelta
 from sys import stdout
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 from loguru import logger
 
 
@@ -12,14 +12,20 @@ if TYPE_CHECKING:
 
 
 class SessionStats:
-    wamps_joined_time: datetime
+    wamps_joined_time: Union[datetime, None] = None
     rpc_count = 0
     rpc_error_count = 0
     pns_count = 0
     pns_error_count= 0
-    max_runtime: timedelta
-    min_runtime: timedelta
-    avg_runtime: timedelta
+    max_runtime: Union[timedelta, None] = None
+    min_runtime: Union[timedelta, None] = None
+    avg_runtime: Union[timedelta, None] = None
+
+    @property
+    def session_lifetime(self):
+        if self.wamps_joined_time is None:
+            return None
+        return datetime.now() - self.wamps_joined_time
 
 
 def loguru_format(state):
@@ -149,11 +155,10 @@ def mount(
         wamps: 'WAMPIS',
         details: 'SessionDetails'
     ):
-        current_time = datetime.now()
         logger.opt(raw=True, colors=True)\
             .debug(
                 ON_WAMP_SESSION_LEAVE_TEXT,
-                session_lifetime=current_time - stats.wamps_joined_time
+                session_lifetime=stats.session_lifetime
             )
 
     @entrypoint_signals.on
