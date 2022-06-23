@@ -67,20 +67,6 @@ loguru_configuration = {
 def mount(
     wampify: 'Wampify'
 ) -> None:
-    ON_WAMP_SESSION_JOIN_TEXT = \
-        '<g><b>WAMP Session Joined!</b></g>\n'\
-        '<b>Current Time</b>:              {current_time}\n'\
-        '<b>Transport</b>:                 {transport}\n'\
-        '<b>Router URL</b>:                {router_url}\n'\
-        '<b>Realm</b>:                     {realm}\n'\
-        '<b>Role</b>:                      {role}\n'\
-        '<b>Session Number</b>:            {session}\n'\
-        '<b>authid</b>:                    {authid}\n'
-
-    ON_WAMP_SESSION_LEAVE_TEXT = \
-        '<r><b>WAMP Session Leaved!</b></r>\n'\
-        '<b>Session Lifetime</b>          {session_lifetime}\n'
-
     from wampify.signals import wamps_signals, entrypoint_signals
     from wampify.requests import CallRequest, PublishRequest
     from wampify.exceptions import InvalidPayload
@@ -137,9 +123,19 @@ def mount(
         wamps: 'WAMPIS',
         details: 'SessionDetails'
     ):
+        ON_WAMP_SESSION_JOIN_TEXT = '\n'\
+            '<g><b>WAMP Session Joined!</b></g>\n'\
+            '<b>Current Time</b>:              {current_time}\n'\
+            '<b>Transport</b>:                 {transport}\n'\
+            '<b>Router URL</b>:                {router_url}\n'\
+            '<b>Realm</b>:                     {realm}\n'\
+            '<b>Session Number</b>:            {session}\n'\
+            '<b>Role</b>:                      {role}\n'\
+            '<b>AUTHID</b>:                    {authid}\n'
+
         stats.wamps_joined_time = datetime.now()
         logger.opt(raw=True, colors=True)\
-            .debug(
+            .warning(
                 ON_WAMP_SESSION_JOIN_TEXT,
                 current_time=stats.wamps_joined_time,
                 router_url=wampify.settings.router.url,
@@ -155,10 +151,22 @@ def mount(
         wamps: 'WAMPIS',
         details: 'SessionDetails'
     ):
+
+        ON_WAMP_SESSION_LEAVE_TEXT = '\n'\
+            '<r><b>WAMP Session Leaved!</b></r>\n'\
+            '<b>Session Lifetime</b>          {session_lifetime}\n'\
+            '<b>Session Number</b>:            {session}\n'
+
         logger.opt(raw=True, colors=True)\
-            .debug(
+            .warning(
                 ON_WAMP_SESSION_LEAVE_TEXT,
-                session_lifetime=stats.session_lifetime
+                session_lifetime=stats.session_lifetime,
+                router_url=wampify.settings.router.url,
+                realm=details.realm,
+                role=details.authrole,
+                session=details.session,
+                authid=details.authid,
+                transport=details.transport,
             )
 
     @entrypoint_signals.on
