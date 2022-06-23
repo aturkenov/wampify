@@ -72,8 +72,6 @@ def get_validated_settings(**kwargs) -> WampifySettings:
     """
     Returns validated user settings
     """
-    from .wamp import AsyncioWampifySession 
-
     class _WampifySessionSettings(WampifySessionSettings):
         ...
         # FIXME factory: WampifySession = WampifySession
@@ -84,6 +82,7 @@ def get_validated_settings(**kwargs) -> WampifySettings:
     settings = _WampifySettings(**kwargs)
 
     if settings.wamps.factory is None:
+        from wampify.wamp import AsyncioWampifySession
         settings.wamps.factory = AsyncioWampifySession
 
     return settings

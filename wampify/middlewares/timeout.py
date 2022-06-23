@@ -11,7 +11,7 @@ async def TimeoutMiddleware(
     request: BaseRequest
 ):
     story = get_current_story()
-    settings = story._endpoint_options_.middlewares.get('timeout', None)
+    settings = story._endpoint_.options.middlewares.get('timeout', None)
     if settings is None:
         settings = story._settings_.middlewares.get('timeout', {})
 

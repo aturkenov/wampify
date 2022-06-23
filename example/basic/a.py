@@ -1,10 +1,6 @@
 from wampify import Wampify
 
 
-def wamps_on_challenge(session, challange):
-    return 'secret'
-
-
 wampify = Wampify(
     debug=False,
     preuri='com.example',
@@ -14,7 +10,7 @@ wampify = Wampify(
         'authid': 'a',
         'authrole': 'private',
         'authmethods': ['ticket'],
-        'on_challenge': wamps_on_challenge,
+        'on_challenge': lambda challange: 'secret',
         'show_registered': True,
         'show_subscribed': True
     }
