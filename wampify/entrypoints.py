@@ -81,7 +81,7 @@ class SharedEntrypoint(Entrypoint):
     ):
         super().__init__(wampify, procedure, endpoint_options)
         self.endpoint = self._create_endpoint(procedure, endpoint_options)
-        self.endpoint = self._build_responsibility_chain(wampify.middlewares, self.endpoint)
+        self.middleware = self._build_responsibility_chain(wampify.middlewares, self.endpoint)
 
     def _create_endpoint(
         self,
@@ -89,8 +89,8 @@ class SharedEntrypoint(Entrypoint):
         options: Mapping
     ) -> SharedEndpoint: ...
 
+    @staticmethod
     def _build_responsibility_chain(
-        self,
         middlewares: List[Callable],
         endpoint: Endpoint
     ) -> Callable:
@@ -157,7 +157,7 @@ class SharedEntrypoint(Entrypoint):
         story._endpoint_ = self.endpoint
         try:
             await entrypoint_signals.fire('opened', story)
-            output = await self.endpoint(request=story._request_)
+            output = await self.middleware(request=story._request_)
             await entrypoint_signals.fire('closed', story)
         except BaseException as e:
             await entrypoint_signals.fire('raised', story, e)
